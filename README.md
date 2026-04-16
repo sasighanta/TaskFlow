@@ -1,4 +1,4 @@
-# Fullstack Trello Clone: React (Vite), Node.js, Express, PostgreSQL (Supabase), Drag & Drop
+# Fullstack Trello : React (Vite), Node.js, Express, PostgreSQL (Supabase), Drag & Drop
 
 ---
 
