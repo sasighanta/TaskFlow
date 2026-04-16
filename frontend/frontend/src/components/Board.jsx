@@ -17,10 +17,21 @@ function Board() {
   };
 
   return (
-    <div className="p-5 bg-blue-100 min-h-screen flex gap-4">
-      {lists.map((list) => (
-        <List key={list.id} list={list} cards={cards} />
-      ))}
+    <div className="board-bg min-h-screen">
+      {/* Header */}
+      <div className="board-header">
+        <span className="board-title">My Workspace</span>
+      </div>
+
+      {/* Lists */}
+      <div className="flex gap-5 p-6 overflow-x-auto items-start">
+        {lists.map((list) => (
+          <List key={list.id} list={list} cards={cards} />
+        ))}
+
+        {/* Add another list button */}
+        <button className="add-list-btn">+ Add another list</button>
+      </div>
     </div>
   );
 }

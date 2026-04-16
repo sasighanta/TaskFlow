@@ -1,7 +1,8 @@
 function Card({ card }) {
   return (
-    <div className="bg-gray-100 p-2 mb-2 rounded">
-      {card.title}
+    <div className="card-item">
+      <span className="card-title">{card.title}</span>
+      {card.tag && <span className="card-tag">{card.tag}</span>}
     </div>
   );
 }
