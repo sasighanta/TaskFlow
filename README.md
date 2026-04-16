@@ -1,4 +1,8 @@
 # Fullstack Trello : React (Vite), Node.js, Express, PostgreSQL (Supabase), Drag & Drop
+<p align="center">
+  <img src="./assets/image1.png" width="45%" />
+  <img src="./assets/image2.png" width="45%" />
+</p>
 
 ---
 
