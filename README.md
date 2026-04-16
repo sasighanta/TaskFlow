@@ -62,26 +62,26 @@ The application closely replicates Trello’s UI patterns, layout, and interacti
 ## 5) Setup Instructions
 
 ### Backend Setup
-cd backend
-npm install
-npm run dev
+-cd backend
+-npm install
+-npm run dev
 
 ### Frontend Setup
-cd frontend
-npm install
-npm run dev
+-cd frontend
+-npm install
+-npm run dev
 
 
 ---
 
-## 7) Deployment
+## 6) Deployment
 
 - Frontend: Vercel  
 - Backend: Render / Railway  
 
 ---
 
-## 8) Database Design
+## 7) Database Design
 
 The application uses a relational schema with the following structure:
 
@@ -98,7 +98,7 @@ Position fields are used to maintain ordering of lists and cards.
 
 ---
 
-## 9) Future Improvements
+## 8) Future Improvements
 
 - Labels and filtering  
 - Due dates  
