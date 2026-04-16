@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 
-const API = "https://YOUR-BACKEND-URL.onrender.com/api";
+const API = "https://trello-backend-i0lq.onrender.com/api";
 
 const TAGS = [
   { tag: 'tag-blue', label: 'Design' },
