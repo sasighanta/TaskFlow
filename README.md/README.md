@@ -11,9 +11,9 @@ The application focuses on **real-time UI updates, persistent data storage, and 
 
 ## 🔗 Live Links
 
-* 🌐 Frontend: https://your-frontend-link.vercel.app
-* ⚙️ Backend: https://your-backend-link.onrender.com
-* 📂 GitHub: https://github.com/your-username/trello-clone
+* 🌐 Frontend: https://trello-tau-amber.vercel.app
+* ⚙️ Backend: https://trello-backend-i0lq.onrender.com
+* 📂 GitHub: https://github.com/sasighanta/trello
 
 ---
 
