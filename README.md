@@ -1,6 +1,21 @@
-# 🧩 Trello Clone – Project Management Tool
+# Fullstack Trello Clone: React (Vite), Node.js, Express, PostgreSQL (Supabase), Drag & Drop
 
-## 🚀 Overview
+---
+
+## LIVE DEMO
+
+**Frontend (Vercel):**  
+https://trello-tau-amber.vercel.app  
+
+**Backend (Render):**  
+https://trello-backend-i0lq.onrender.com  
+
+**GitHub Repo:**  
+https://github.com/sasighanta/trello  
+
+---
+
+## 1) Overview
 
 This project is a full-stack Kanban-style project management application inspired by Trello. It allows users to visually organize tasks using boards, lists, and cards with smooth drag-and-drop functionality.
 
@@ -8,183 +23,94 @@ The application closely replicates Trello’s UI patterns, layout, and interacti
 
 ---
 
-## 🛠️ Tech Stack
+## 2) Tech Stack
 
-**Frontend:** React.js (Vite)
-
-**Backend:** Node.js + Express.js
-
-**Database:** PostgreSQL (Supabase)
-
-**Drag & Drop:** @hello-pangea/dnd
+- **Frontend:** React.js (Vite)  
+- **Backend:** Node.js + Express.js  
+- **Database:** PostgreSQL (Supabase)  
+- **Drag & Drop:** @hello-pangea/dnd  
 
 ---
 
-## ✨ Core Features
+## 3) Core Features
 
-### 📌 Board Management
+### Board Management
+- Create and view boards  
+- Display all lists and cards within a board  
 
-* Create and view boards
-* Display all lists and cards within a board
+### Lists Management
+- Create, edit, and delete lists  
+- Reorder lists using drag-and-drop  
 
-### 📋 Lists Management
-
-* Create, edit, and delete lists
-* Reorder lists using drag-and-drop
-
-### 📝 Cards Management
-
-* Create cards with title
-* Edit card title and description
-* Delete cards
-* Drag and drop cards between lists
-* Reorder cards within a list
-
-### 🔍 Search & Filter
-
-* Search cards by title *(basic implementation)*
+### Cards Management
+- Create cards with title  
+- Edit card title and description  
+- Delete cards  
+- Drag and drop cards between lists  
+- Reorder cards within a list  
 
 ---
 
-## ⚡ Additional Features Implemented
+## 4) Additional Features
 
-* Persistent data using PostgreSQL
-* Clean and responsive UI
-* Real-time UI updates after actions
-
----
-
-## 📂 Project Structure
-
-```
-trello-clone/
-│
-├── frontend/     # React Application
-├── backend/      # Express Server
-└── README.md
-```
+- Persistent data using PostgreSQL  
+- Clean and responsive UI  
+- Real-time UI updates after actions  
 
 ---
 
-## ⚙️ Setup Instructions
+## 5) Setup Instructions
 
-### 1️⃣ Clone Repository
-
-```bash
-git clone https://github.com/your-username/trello-clone.git
-cd trello-clone
-```
-
-### 2️⃣ Backend Setup
-
-```bash
+### Backend Setup
 cd backend
 npm install
 npm run dev
-```
 
-### 3️⃣ Frontend Setup
-
-```bash
+### Frontend Setup
 cd frontend
 npm install
 npm run dev
-```
+
 
 ---
 
-## 🔑 Environment Variables
+## 7) Deployment
 
-Create a `.env` file inside the backend folder:
-
-```
-DATABASE_URL=your_postgres_connection_string
-PORT=5000
-```
+- Frontend: Vercel  
+- Backend: Render / Railway  
 
 ---
 
-## 🌐 Deployment
-
-* **Frontend:** Vercel
-* **Backend:** Render / Railway
-
----
-
-## 🧠 Database Design
+## 8) Database Design
 
 The application uses a relational schema with the following structure:
 
-* **Boards** → contains multiple lists
-* **Lists** → belongs to a board and contains multiple cards
-* **Cards** → belongs to a list
+- **Boards** → contains multiple lists  
+- **Lists** → belongs to a board and contains multiple cards  
+- **Cards** → belongs to a list  
 
 Relationships:
 
-* One-to-Many: Board → Lists
-* One-to-Many: List → Cards
+- One-to-Many: Board → Lists  
+- One-to-Many: List → Cards  
 
 Position fields are used to maintain ordering of lists and cards.
 
 ---
 
-## 🤖 AI Tools Usage
+## 9) Future Improvements
 
-AI tools such as ChatGPT and GitHub Copilot were used to:
-
-* Debug issues
-* Improve UI and code structure
-* Assist with drag-and-drop logic
-
-All code written is understood and can be explained.
-
----
-
-## 📌 Assumptions
-
-* No authentication (default user assumed)
-* Single board system (for simplicity)
-* Basic search implemented
+- Labels and filtering  
+- Due dates  
+- Checklist inside cards  
+- Assign members to cards  
+- Multiple boards support  
+- Comments and activity log  
+- File attachments  
+- Mobile responsiveness improvements  
 
 ---
 
-## 🎯 Future Improvements
-
-* Labels and filtering
-* Due dates
-* Checklist inside cards
-* Assign members to cards
-* Multiple boards support
-* Comments and activity log
-* File attachments
-* Mobile responsiveness improvements
-
----
-
-## 📊 Evaluation Readiness
-
-This project is built keeping in mind:
-
-* Clean and modular code structure
-* Smooth drag-and-drop interactions
-* Scalable database design
-* UI similar to Trello
-
----
-
-## 🔗 Submission
-
-* GitHub Repository: *(Add your link here)*
-* Live Demo: *(Add deployed link here)*
-
----
-
-## ⏳ Timeline
-
-Completed within the given 2-day assignment window.
-
----
-
-## 📌 Final Note
+## 10) Final Note
 
 This project demonstrates full-stack development skills including frontend UI design, backend API development, database design, and state management with drag-and-drop interactions.
