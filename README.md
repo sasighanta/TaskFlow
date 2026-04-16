@@ -62,14 +62,14 @@ The application closely replicates Trello’s UI patterns, layout, and interacti
 ## 5) Setup Instructions
 
 ### Backend Setup
--cd backend
--npm install
--npm run dev
+- cd backend
+- npm install
+- npm run dev
 
 ### Frontend Setup
--cd frontend
--npm install
--npm run dev
+- cd frontend
+- npm install
+- npm run dev
 
 
 ---
