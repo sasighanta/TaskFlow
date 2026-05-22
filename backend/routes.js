@@ -19,9 +19,11 @@ router.get('/board/:id', async (req, res) => {
 
     res.json({ lists: lists.rows, cards: cards.rows });
   } catch (err) {
-    console.error(err);
-    res.status(500).send("Error");
-  }
+  console.error("DATABASE ERROR:", err.message);
+  res.status(500).json({
+    error: err.message
+  });
+}
 });
 router.put('/cards/reorder', async (req, res) => {
   const { cards } = req.body;
