@@ -121,6 +121,39 @@ router.put('/cards/:id', async (req, res) => {
     res.status(500).send("Error");
   }
 });
+
+/* ✅ UPDATE CARD TITLE */
+router.put('/cards/:id/title', async (req, res) => {
+  const { id } = req.params;
+  const { title } = req.body;
+  try {
+    const result = await pool.query(
+      'UPDATE cards SET title=$1 WHERE id=$2 RETURNING *',
+      [title, id]
+    );
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Error");
+  }
+});
+
+/* ✅ UPDATE LIST TITLE */
+router.put('/lists/:id', async (req, res) => {
+  const { id } = req.params;
+  const { title } = req.body;
+  try {
+    const result = await pool.query(
+      'UPDATE lists SET title=$1 WHERE id=$2 RETURNING *',
+      [title, id]
+    );
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Error");
+  }
+});
+
 router.delete('/cards/:id', async (req, res) => {
   const { id } = req.params;
 
