@@ -37,8 +37,8 @@ function App() {
   const [editingCard, setEditingCard] = useState(null);
   const [editCardTitle, setEditCardTitle] = useState("");
   const [selectedCard, setSelectedCard] = useState(null);
-const [modalDesc, setModalDesc] = useState('');
-const [modalTitle, setModalTitle] = useState('');
+  const [modalDesc, setModalDesc] = useState('');
+  const [modalTitle, setModalTitle] = useState('');
 
   const fetchBoard = async () => {
     try {
@@ -75,10 +75,11 @@ const [modalTitle, setModalTitle] = useState('');
   };
 
   const deleteList = async (id) => {
-  if (!window.confirm('Are you sure you want to delete this list and all its cards?')) return;
-  await axios.delete(`${API}/lists/${id}`);
-  fetchBoard();
-};
+    if (!window.confirm('Are you sure you want to delete this list and all its cards?')) return;
+    await axios.delete(`${API}/lists/${id}`);
+    fetchBoard();
+  };
+
   const createCard = async (listId) => {
     const title = cardInputs[listId];
     if (!title || !title.trim()) return;
@@ -105,18 +106,18 @@ const [modalTitle, setModalTitle] = useState('');
   };
 
   const updateCard = async () => {
-  if (!modalTitle.trim()) return;
-  await axios.put(`${API}/cards/${selectedCard.id}/title`, { title: modalTitle.trim() });
-  await axios.put(`${API}/cards/${selectedCard.id}/description`, { description: modalDesc });
-  setSelectedCard(null);
-  fetchBoard();
-};
+    if (!modalTitle.trim()) return;
+    await axios.put(`${API}/cards/${selectedCard.id}/title`, { title: modalTitle.trim() });
+    await axios.put(`${API}/cards/${selectedCard.id}/description`, { description: modalDesc });
+    setSelectedCard(null);
+    fetchBoard();
+  };
 
- const deleteCard = async (id) => {
-  if (!window.confirm('Are you sure you want to delete this card?')) return;
-  await axios.delete(`${API}/cards/${id}`);
-  fetchBoard();
-};
+  const deleteCard = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this card?')) return;
+    await axios.delete(`${API}/cards/${id}`);
+    fetchBoard();
+  };
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -124,7 +125,6 @@ const [modalTitle, setModalTitle] = useState('');
     setUser(null);
   };
 
-  // ✅ Auth check — BEFORE the return
   if (!user) return <Auth onLogin={(u) => setUser(u)} />;
 
   return (
@@ -158,9 +158,7 @@ const [modalTitle, setModalTitle] = useState('');
           Trello
         </span>
 
-        {/* User info + Logout */}
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12 }}>
-          
           <button
             onClick={handleLogout}
             style={{
@@ -183,16 +181,16 @@ const [modalTitle, setModalTitle] = useState('');
         letterSpacing: '-0.4px',
         textShadow: '0 2px 8px rgba(0,0,0,0.4)'
       }}>
-     <div style={{
-  padding: '24px 24px 4px',
-  textAlign: 'center',
-  fontSize: 28, fontWeight: 800,
-  color: '#ffffff',
-  letterSpacing: '-0.4px',
-  textShadow: '0 2px 8px rgba(0,0,0,0.4)'
-}}>
-  Welcome back, {user.username}! ✨
-</div>
+        <div style={{
+          padding: '24px 24px 4px',
+          textAlign: 'center',
+          fontSize: 28, fontWeight: 800,
+          color: '#ffffff',
+          letterSpacing: '-0.4px',
+          textShadow: '0 2px 8px rgba(0,0,0,0.4)'
+        }}>
+          Welcome back, {user.username}! ✨
+        </div>
         My Board
       </div>
 
@@ -262,11 +260,11 @@ const [modalTitle, setModalTitle] = useState('');
                       }}>
                         {listCards.length}
                       </span>
-                     <button onClick={() => deleteList(list.id)} style={{
-  background: '#ef4444', border: 'none', cursor: 'pointer',
-  color: '#fff', fontSize: 11, padding: '3px 10px',
-  borderRadius: 6, fontWeight: 600, fontFamily: 'inherit'
-}}>Delete List</button>
+                      <button onClick={() => deleteList(list.id)} style={{
+                        background: '#ef4444', border: 'none', cursor: 'pointer',
+                        color: '#fff', fontSize: 11, padding: '3px 10px',
+                        borderRadius: 6, fontWeight: 600, fontFamily: 'inherit'
+                      }}>Delete List</button>
                     </div>
                   </div>
 
@@ -320,16 +318,16 @@ const [modalTitle, setModalTitle] = useState('');
                                     />
                                   ) : (
                                     <div
-  onClick={() => {
-    setSelectedCard(card);
-    setModalTitle(card.title);
-    setModalDesc(card.description || '');
-  }}
-  style={{ fontSize: 15, fontWeight: 700, color: '#1c1917', lineHeight: 1.4, cursor: 'pointer' }}
-  title="Click to edit"
->
-  {card.title}
-</div>
+                                      onClick={() => {
+                                        setSelectedCard(card);
+                                        setModalTitle(card.title);
+                                        setModalDesc(card.description || '');
+                                      }}
+                                      style={{ fontSize: 15, fontWeight: 700, color: '#1c1917', lineHeight: 1.4, cursor: 'pointer' }}
+                                      title="Click to edit"
+                                    >
+                                      {card.title}
+                                    </div>
                                   )}
                                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 9 }}>
                                     <span style={{
@@ -339,11 +337,11 @@ const [modalTitle, setModalTitle] = useState('');
                                     }}>
                                       {card.tag_label || 'Task'}
                                     </span>
-                     <button onClick={() => deleteCard(card.id)} style={{
-  background: '#ef4444', border: 'none', cursor: 'pointer',
-  color: '#fff', fontSize: 11, padding: '3px 10px',
-  borderRadius: 6, fontWeight: 600, fontFamily: 'inherit'
-}}>Delete</button>
+                                    <button onClick={() => deleteCard(card.id)} style={{
+                                      background: '#ef4444', border: 'none', cursor: 'pointer',
+                                      color: '#fff', fontSize: 11, padding: '3px 10px',
+                                      borderRadius: 6, fontWeight: 600, fontFamily: 'inherit'
+                                    }}>Delete</button>
                                   </div>
                                 </div>
                               )}
@@ -443,14 +441,14 @@ const [modalTitle, setModalTitle] = useState('');
                 <button
                   onClick={() => setShowAddList(true)}
                   onMouseEnter={e => e.currentTarget.style.background = '#1d4ed8'}
-onMouseLeave={e => e.currentTarget.style.background = '#2563eb'}
+                  onMouseLeave={e => e.currentTarget.style.background = '#2563eb'}
                   style={{
-  width: '100%', background: '#2563eb', border: 'none',
-  borderRadius: 10, padding: '11px 16px', cursor: 'pointer',
-  color: '#fff', fontSize: 13, fontWeight: 700, fontFamily: 'inherit',
-  display: 'flex', alignItems: 'center', gap: 8,
-  boxShadow: '0 2px 8px rgba(37,99,235,0.4)'
-}}
+                    width: '100%', background: '#2563eb', border: 'none',
+                    borderRadius: 10, padding: '11px 16px', cursor: 'pointer',
+                    color: '#fff', fontSize: 13, fontWeight: 700, fontFamily: 'inherit',
+                    display: 'flex', alignItems: 'center', gap: 8,
+                    boxShadow: '0 2px 8px rgba(37,99,235,0.4)'
+                  }}
                 >
                   <span style={{ fontSize: 18 }}>+</span> Add another list
                 </button>
@@ -460,84 +458,87 @@ onMouseLeave={e => e.currentTarget.style.background = '#2563eb'}
           </div>
         </DragDropContext>
       )}
+
+      {/* ── Card Modal ── */}
+      {selectedCard && (
+        <div
+          onClick={() => setSelectedCard(null)}
+          style={{
+            position: 'fixed', inset: 0,
+            background: 'rgba(0,0,0,0.6)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            zIndex: 1000, backdropFilter: 'blur(4px)'
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: '#fff', borderRadius: 16,
+              padding: '28px 28px 24px',
+              width: 480, maxWidth: '90vw',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
+            }}
+          >
+            {/* Modal Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: '#78716c' }}>✏️ Edit Card</span>
+              <button onClick={() => setSelectedCard(null)} style={{
+                background: 'none', border: 'none', fontSize: 20,
+                cursor: 'pointer', color: '#a8a29e', padding: '0 4px'
+              }}>✕</button>
+            </div>
+
+            {/* Card Title */}
+            <label style={{ fontSize: 12, fontWeight: 600, color: '#78716c', display: 'block', marginBottom: 6 }}>
+              TITLE
+            </label>
+            <input
+              value={modalTitle}
+              onChange={e => setModalTitle(e.target.value)}
+              style={{
+                width: '100%', border: '1px solid #e5e7eb', borderRadius: 8,
+                padding: '10px 12px', fontSize: 15, fontWeight: 700,
+                fontFamily: 'inherit', color: '#1c1917', outline: 'none',
+                boxSizing: 'border-box', marginBottom: 16
+              }}
+            />
+
+            {/* Description */}
+            <label style={{ fontSize: 12, fontWeight: 600, color: '#78716c', display: 'block', marginBottom: 6 }}>
+              DESCRIPTION
+            </label>
+            <textarea
+              value={modalDesc}
+              onChange={e => setModalDesc(e.target.value)}
+              placeholder="Add a description..."
+              rows={5}
+              style={{
+                width: '100%', border: '1px solid #e5e7eb', borderRadius: 8,
+                padding: '10px 12px', fontSize: 13, fontFamily: 'inherit',
+                color: '#1c1917', outline: 'none', resize: 'vertical',
+                boxSizing: 'border-box', marginBottom: 20
+              }}
+            />
+
+            {/* Buttons */}
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button onClick={updateCard} style={{
+                flex: 1, background: '#2563eb', color: '#fff', border: 'none',
+                borderRadius: 8, padding: '10px', fontSize: 14,
+                fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit'
+              }}>Save</button>
+              <button onClick={() => setSelectedCard(null)} style={{
+                background: '#f5f5f4', color: '#78716c', border: 'none',
+                borderRadius: 8, padding: '10px 16px', fontSize: 14,
+                fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit'
+              }}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
-{/* ── Card Modal ── */}
-{selectedCard && (
-  <div
-    onClick={() => setSelectedCard(null)}
-    style={{
-      position: 'fixed', inset: 0,
-      background: 'rgba(0,0,0,0.6)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      zIndex: 1000, backdropFilter: 'blur(4px)'
-    }}
-  >
-    <div
-      onClick={e => e.stopPropagation()}
-      style={{
-        background: '#fff', borderRadius: 16,
-        padding: '28px 28px 24px',
-        width: 480, maxWidth: '90vw',
-        boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
-      }}
-    >
-      {/* Modal Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-        <span style={{ fontSize: 13, fontWeight: 600, color: '#78716c' }}>✏️ Edit Card</span>
-        <button onClick={() => setSelectedCard(null)} style={{
-          background: 'none', border: 'none', fontSize: 20,
-          cursor: 'pointer', color: '#a8a29e', padding: '0 4px'
-        }}>✕</button>
-      </div>
 
-      {/* Card Title */}
-      <label style={{ fontSize: 12, fontWeight: 600, color: '#78716c', display: 'block', marginBottom: 6 }}>
-        TITLE
-      </label>
-      <input
-        value={modalTitle}
-        onChange={e => setModalTitle(e.target.value)}
-        style={{
-          width: '100%', border: '1px solid #e5e7eb', borderRadius: 8,
-          padding: '10px 12px', fontSize: 15, fontWeight: 700,
-          fontFamily: 'inherit', color: '#1c1917', outline: 'none',
-          boxSizing: 'border-box', marginBottom: 16
-        }}
-      />
-
-      {/* Description */}
-      <label style={{ fontSize: 12, fontWeight: 600, color: '#78716c', display: 'block', marginBottom: 6 }}>
-        DESCRIPTION
-      </label>
-      <textarea
-        value={modalDesc}
-        onChange={e => setModalDesc(e.target.value)}
-        placeholder="Add a description..."
-        rows={5}
-        style={{
-          width: '100%', border: '1px solid #e5e7eb', borderRadius: 8,
-          padding: '10px 12px', fontSize: 13, fontFamily: 'inherit',
-          color: '#1c1917', outline: 'none', resize: 'vertical',
-          boxSizing: 'border-box', marginBottom: 20
-        }}
-      />
-
-      {/* Buttons */}
-      <div style={{ display: 'flex', gap: 10 }}>
-        <button onClick={updateCard} style={{
-          flex: 1, background: '#2563eb', color: '#fff', border: 'none',
-          borderRadius: 8, padding: '10px', fontSize: 14,
-          fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit'
-        }}>Save</button>
-        <button onClick={() => setSelectedCard(null)} style={{
-          background: '#f5f5f4', color: '#78716c', border: 'none',
-          borderRadius: 8, padding: '10px 16px', fontSize: 14,
-          fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit'
-        }}>Cancel</button>
-      </div>
-    </div>
-  </div>
-)}
 export default App;
