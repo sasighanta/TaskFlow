@@ -154,7 +154,7 @@ function App() {
   background: 'linear-gradient(135deg, #ffffff, #93c5fd)',
   WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent'
 }}>
-  Hi, {user.username} 👋
+  Hi, {user.username} ⭐
 </span>
           <button
             onClick={handleLogout}
@@ -178,10 +178,14 @@ function App() {
         letterSpacing: '-0.4px',
         textShadow: '0 2px 8px rgba(0,0,0,0.4)'
       }}>
-        <div style={{
-  padding: '16px 24px 0px',
-  color: 'rgba(255,255,255,0.7)',
-  fontSize: 13, fontWeight: 500
+      <div style={{
+  padding: '24px 24px 4px',
+  textAlign: 'center',
+  fontSize: 28, fontWeight: 800,
+  letterSpacing: '-0.4px',
+  textShadow: '0 2px 8px rgba(0,0,0,0.4)',
+  background: 'linear-gradient(135deg, #ffffff, #93c5fd)',
+  WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent'
 }}>
   Welcome back, {user.username}! 👋
 </div>
