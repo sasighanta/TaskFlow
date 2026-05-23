@@ -9,7 +9,7 @@ function Auth({ onLogin }) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 const [showPassword, setShowPassword] = useState(false);
-
+  const [successMsg, setSuccessMsg] = useState('');
   const handleSubmit = async () => {
     setError('');
     setLoading(true);
@@ -20,9 +20,17 @@ const [showPassword, setShowPassword] = useState(false);
         : { username: form.username, email: form.email, password: form.password };
 
       const res = await axios.post(`${API}${endpoint}`, payload);
-      localStorage.setItem('token', res.data.token);
-      localStorage.setItem('user', JSON.stringify(res.data.user));
-      onLogin(res.data.user);
+     if (isLogin) {
+  localStorage.setItem('token', res.data.token);
+  localStorage.setItem('user', JSON.stringify(res.data.user));
+  onLogin(res.data.user);
+} else {
+  // After register, switch to login with success message
+  setIsLogin(true);
+  setForm({ username: '', email: '', password: '' });
+  setError('');
+  setSuccessMsg('Account created! Please login.');
+}
     } catch (err) {
       setError(err.response?.data?.error || 'Something went wrong');
     } finally {
@@ -117,6 +125,15 @@ const [showPassword, setShowPassword] = useState(false);
             {error}
           </div>
         )}
+        {successMsg && (
+  <div style={{
+    background: '#dcfce7', color: '#15803d',
+    borderRadius: 8, padding: '8px 12px',
+    fontSize: 13, marginBottom: 16
+  }}>
+    {successMsg}
+  </div>
+)}
 
         {/* Submit */}
         <button
@@ -137,7 +154,7 @@ const [showPassword, setShowPassword] = useState(false);
         <p style={{ textAlign: 'center', fontSize: 13, color: '#78716c' }}>
           {isLogin ? "Don't have an account? " : "Already have an account? "}
           <span
-            onClick={() => { setIsLogin(!isLogin); setError(''); }}
+           onClick={() => { setIsLogin(!isLogin); setError(''); setSuccessMsg(''); }}
             style={{ color: '#2563eb', fontWeight: 600, cursor: 'pointer' }}
           >
             {isLogin ? 'Register' : 'Login'}

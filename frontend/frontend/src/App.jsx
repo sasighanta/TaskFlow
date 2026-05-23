@@ -148,9 +148,14 @@ function App() {
 
         {/* User info + Logout */}
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12 }}>
-          <span style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13 }}>
-            Hi, {user.username} 👋
-          </span>
+          <span style={{
+  fontSize: 16, fontWeight: 900, fontStyle: 'italic',
+  fontFamily: "'Georgia', serif",
+  background: 'linear-gradient(135deg, #ffffff, #93c5fd)',
+  WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent'
+}}>
+  Hi, {user.username} 👋
+</span>
           <button
             onClick={handleLogout}
             style={{
@@ -173,6 +178,13 @@ function App() {
         letterSpacing: '-0.4px',
         textShadow: '0 2px 8px rgba(0,0,0,0.4)'
       }}>
+        <div style={{
+  padding: '16px 24px 0px',
+  color: 'rgba(255,255,255,0.7)',
+  fontSize: 13, fontWeight: 500
+}}>
+  Welcome back, {user.username}! 👋
+</div>
         My Board
       </div>
 
@@ -243,9 +255,10 @@ function App() {
                         {listCards.length}
                       </span>
                       <button onClick={() => deleteList(list.id)} style={{
-                        background: 'none', border: 'none', cursor: 'pointer',
-                        color: '#a8a29e', fontSize: 13, padding: '2px 4px', borderRadius: 4
-                      }}>✕</button>
+  background: '#fee2e2', border: 'none', cursor: 'pointer',
+  color: '#b91c1c', fontSize: 11, padding: '3px 8px',
+  borderRadius: 5, fontWeight: 600, fontFamily: 'inherit'
+}}>Delete List</button>
                     </div>
                   </div>
 
@@ -314,10 +327,11 @@ function App() {
                                     }}>
                                       {card.tag_label || 'Task'}
                                     </span>
-                                    <button onClick={() => deleteCard(card.id)} style={{
-                                      background: 'none', border: 'none', cursor: 'pointer',
-                                      color: '#c4b5b0', fontSize: 12, padding: '2px 4px'
-                                    }}>✕</button>
+                                   <button onClick={() => deleteCard(card.id)} style={{
+  background: '#fee2e2', border: 'none', cursor: 'pointer',
+  color: '#b91c1c', fontSize: 11, padding: '3px 8px',
+  borderRadius: 5, fontWeight: 600, fontFamily: 'inherit'
+}}>Delete</button>
                                   </div>
                                 </div>
                               )}
