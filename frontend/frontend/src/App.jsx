@@ -26,7 +26,11 @@ function App() {
   const [showAddList, setShowAddList] = useState(false);
   const [cardInputs, setCardInputs] = useState({});
   const [addingCard, setAddingCard] = useState(null);
-  const [loading, setLoading] = useState(true);
+ const [loading, setLoading] = useState(true);
+const [editingList, setEditingList] = useState(null);
+const [editListTitle, setEditListTitle] = useState("");
+const [editingCard, setEditingCard] = useState(null);
+const [editCardTitle, setEditCardTitle] = useState("");
 
   const fetchBoard = async () => {
     try {
@@ -77,6 +81,20 @@ function App() {
     setAddingCard(null);
     fetchBoard();
   };
+
+  const updateListTitle = async (id) => {
+  if (!editListTitle.trim()) return;
+  await axios.put(`${API}/lists/${id}`, { title: editListTitle.trim() });
+  setEditingList(null);
+  fetchBoard();
+};
+
+const updateCardTitle = async (id) => {
+  if (!editCardTitle.trim()) return;
+  await axios.put(`${API}/cards/${id}/title`, { title: editCardTitle.trim() });
+  setEditingCard(null);
+  fetchBoard();
+};
 
   const deleteCard = async (id) => {
     await axios.delete(`${API}/cards/${id}`);
@@ -161,11 +179,33 @@ function App() {
                     padding: '0 4px 10px',
                     borderBottom: '1px solid #ece9e0'
                   }}>
-                    <span style={{ fontSize: 15, fontWeight: 700, color: '#1c1917' }}>
-                      {list.title}
-                    </span>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span style={{
+                    {editingList === list.id ? (
+  <input
+    autoFocus
+    value={editListTitle}
+    onChange={e => setEditListTitle(e.target.value)}
+    onKeyDown={e => {
+      if (e.key === 'Enter') updateListTitle(list.id);
+      if (e.key === 'Escape') setEditingList(null);
+    }}
+    onBlur={() => updateListTitle(list.id)}
+    style={{
+      fontSize: 15, fontWeight: 700, color: '#1c1917',
+      border: '1px solid #2563eb', borderRadius: 5,
+      padding: '2px 6px', outline: 'none', width: '140px'
+    }}
+  />
+) : (
+  <span
+    onDoubleClick={() => { setEditingList(list.id); setEditListTitle(list.title); }}
+    style={{ fontSize: 15, fontWeight: 700, color: '#1c1917', cursor: 'pointer' }}
+    title="Double-click to edit"
+  >
+    {list.title}
+  </span>
+)}
+ <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+      <span style={{
                         fontSize: 11, fontWeight: 600, color: '#78716c',
                         background: '#e7e5df', borderRadius: 20,
                         padding: '1px 8px'
@@ -212,9 +252,31 @@ function App() {
                                   }}
                                 >
                                   {/* Card title - bold and visible */}
-                                  <div style={{ fontSize: 15, fontWeight: 700, color: '#1c1917', lineHeight: 1.4 }}>
-                                    {card.title}
-                                  </div>
+                                  {editingCard === card.id ? (
+  <input
+    autoFocus
+    value={editCardTitle}
+    onChange={e => setEditCardTitle(e.target.value)}
+    onKeyDown={e => {
+      if (e.key === 'Enter') updateCardTitle(card.id);
+      if (e.key === 'Escape') setEditingCard(null);
+    }}
+    onBlur={() => updateCardTitle(card.id)}
+    style={{
+      fontSize: 14, fontWeight: 700, color: '#1c1917',
+      border: '1px solid #2563eb', borderRadius: 5,
+      padding: '2px 6px', outline: 'none', width: '100%'
+    }}
+  />
+) : (
+  <div
+    onDoubleClick={() => { setEditingCard(card.id); setEditCardTitle(card.title); }}
+    style={{ fontSize: 15, fontWeight: 700, color: '#1c1917', lineHeight: 1.4, cursor: 'pointer' }}
+    title="Double-click to edit"
+  >
+    {card.title}
+  </div>
+)}
                                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 9 }}>
                                     <span style={{
                                       fontSize: 11, fontWeight: 600,
