@@ -108,13 +108,11 @@ router.post('/lists', async (req, res) => {
 /* ✅ CREATE CARD */
 router.post('/cards', async (req, res) => {
   try {
-    const { title, list_id } = req.body;
-
+    const { title, list_id, tag, tag_label } = req.body;
     const result = await pool.query(
-      'INSERT INTO cards(title, list_id, position) VALUES($1,$2,$3) RETURNING *',
-      [title, list_id, 0]
+      'INSERT INTO cards(title, list_id, position, tag, tag_label) VALUES($1,$2,$3,$4,$5) RETURNING *',
+      [title, list_id, 0, tag, tag_label]
     );
-
     res.json(result.rows[0]);
   } catch (err) {
     console.error(err);
