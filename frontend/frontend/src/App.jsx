@@ -39,7 +39,7 @@ function App() {
 
   const fetchBoard = async () => {
     try {
-      const res = await axios.get(`${API}/board/1`);
+      const res = await axios.get(`${API}/user/${user.id}/board`);
       setData(res.data);
     } catch (err) {
       console.error("Failed to fetch board", err);
@@ -65,7 +65,7 @@ function App() {
 
   const createList = async () => {
     if (!newList.trim()) return;
-    await axios.post(`${API}/lists`, { title: newList.trim(), board_id: 1 });
+    await axios.post(`${API}/lists`, { title: newList.trim(), board_id: data.board?.id || 1 });
     setNewList("");
     setShowAddList(false);
     fetchBoard();
