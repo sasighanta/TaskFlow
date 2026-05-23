@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
+import Auth from './Auth';
 
 const API = "https://trello-hvze.onrender.com/api";
 
@@ -21,16 +22,20 @@ const TAG_STYLES = {
 let tagIndex = 0;
 
 function App() {
+  const [user, setUser] = useState(() => {
+    const stored = localStorage.getItem('user');
+    return stored ? JSON.parse(stored) : null;
+  });
   const [data, setData] = useState({ lists: [], cards: [] });
   const [newList, setNewList] = useState("");
   const [showAddList, setShowAddList] = useState(false);
   const [cardInputs, setCardInputs] = useState({});
   const [addingCard, setAddingCard] = useState(null);
- const [loading, setLoading] = useState(true);
-const [editingList, setEditingList] = useState(null);
-const [editListTitle, setEditListTitle] = useState("");
-const [editingCard, setEditingCard] = useState(null);
-const [editCardTitle, setEditCardTitle] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [editingList, setEditingList] = useState(null);
+  const [editListTitle, setEditListTitle] = useState("");
+  const [editingCard, setEditingCard] = useState(null);
+  const [editCardTitle, setEditCardTitle] = useState("");
 
   const fetchBoard = async () => {
     try {
@@ -55,7 +60,7 @@ const [editCardTitle, setEditCardTitle] = useState("");
     updatedCards.splice(destination.index, 0, dragged);
     updatedCards = updatedCards.map((card, index) => ({ ...card, position: index }));
     setData({ ...data, cards: updatedCards });
-         await axios.put(`${API}/cards/reorder`, { cards: updatedCards });
+    await axios.put(`${API}/cards/reorder`, { cards: updatedCards });
   };
 
   const createList = async () => {
@@ -82,26 +87,33 @@ const [editCardTitle, setEditCardTitle] = useState("");
     fetchBoard();
   };
 
- const updateListTitle = async (id) => {
-   console.log("updateListTitle called", id, editListTitle);
-  if (!editListTitle.trim()) return;
-  await axios.put(`${API}/lists/${id}`, { title: editListTitle.trim() });
-  setEditingList(null);
-  fetchBoard();
-};
+  const updateListTitle = async (id) => {
+    if (!editListTitle.trim()) return;
+    await axios.put(`${API}/lists/${id}`, { title: editListTitle.trim() });
+    setEditingList(null);
+    fetchBoard();
+  };
 
-const updateCardTitle = async (id) => {
-    console.log("updateCardTitle called", id, editCardTitle);
-  if (!editCardTitle.trim()) return;
-  await axios.put(`${API}/cards/${id}/title`, { title: editCardTitle.trim() });
-  setEditingCard(null);
-  fetchBoard();
-};
+  const updateCardTitle = async (id) => {
+    if (!editCardTitle.trim()) return;
+    await axios.put(`${API}/cards/${id}/title`, { title: editCardTitle.trim() });
+    setEditingCard(null);
+    fetchBoard();
+  };
 
   const deleteCard = async (id) => {
     await axios.delete(`${API}/cards/${id}`);
     fetchBoard();
   };
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setUser(null);
+  };
+
+  // ✅ Auth check — BEFORE the return
+  if (!user) return <Auth onLogin={(u) => setUser(u)} />;
 
   return (
     <div style={{
@@ -118,22 +130,38 @@ const updateCardTitle = async (id) => {
         backdropFilter: 'blur(10px)',
         borderBottom: '1px solid rgba(255,255,255,0.1)'
       }}>
-    <span style={{
-  fontSize: 28,
-  fontWeight: 900,
-  color: '#fff',
-  letterSpacing: '2px',
-  textTransform: 'uppercase',
-  background: 'linear-gradient(135deg, #ffffff, #93c5fd)',
-  WebkitBackgroundClip: 'text',
-  WebkitTextFillColor: 'transparent',
-  textShadow: 'none',
-  fontStyle: 'italic',
-  
-  fontFamily: "'Georgia', serif"
-}}>
-  Trello
-</span>
+        <span style={{
+          fontSize: 28,
+          fontWeight: 900,
+          color: '#fff',
+          letterSpacing: '2px',
+          textTransform: 'uppercase',
+          background: 'linear-gradient(135deg, #ffffff, #93c5fd)',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          textShadow: 'none',
+          fontStyle: 'italic',
+          fontFamily: "'Georgia', serif"
+        }}>
+          Trello
+        </span>
+
+        {/* User info + Logout */}
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12 }}>
+          <span style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13 }}>
+            Hi, {user.username} 👋
+          </span>
+          <button
+            onClick={handleLogout}
+            style={{
+              background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)',
+              color: '#fff', borderRadius: 7, padding: '6px 14px',
+              fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit'
+            }}
+          >
+            Logout
+          </button>
+        </div>
       </div>
 
       {/* ── Board Title ── */}
@@ -182,32 +210,32 @@ const updateCardTitle = async (id) => {
                     borderBottom: '1px solid #ece9e0'
                   }}>
                     {editingList === list.id ? (
-  <input
-    autoFocus
-    value={editListTitle}
-    onChange={e => setEditListTitle(e.target.value)}
-    onKeyDown={e => {
-      if (e.key === 'Enter') updateListTitle(list.id);
-      if (e.key === 'Escape') setEditingList(null);
-    }}
-    onBlur={() => updateListTitle(list.id)}
-    style={{
-      fontSize: 15, fontWeight: 700, color: '#1c1917',
-      border: '1px solid #2563eb', borderRadius: 5,
-      padding: '2px 6px', outline: 'none', width: '140px'
-    }}
-  />
-) : (
-  <span
-    onDoubleClick={() => { setEditingList(list.id); setEditListTitle(list.title); }}
-    style={{ fontSize: 15, fontWeight: 700, color: '#1c1917', cursor: 'pointer' }}
-    title="Double-click to edit"
-  >
-    {list.title}
-  </span>
-)}
- <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-      <span style={{
+                      <input
+                        autoFocus
+                        value={editListTitle}
+                        onChange={e => setEditListTitle(e.target.value)}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter') updateListTitle(list.id);
+                          if (e.key === 'Escape') setEditingList(null);
+                        }}
+                        onBlur={() => updateListTitle(list.id)}
+                        style={{
+                          fontSize: 15, fontWeight: 700, color: '#1c1917',
+                          border: '1px solid #2563eb', borderRadius: 5,
+                          padding: '2px 6px', outline: 'none', width: '140px'
+                        }}
+                      />
+                    ) : (
+                      <span
+                        onDoubleClick={() => { setEditingList(list.id); setEditListTitle(list.title); }}
+                        style={{ fontSize: 15, fontWeight: 700, color: '#1c1917', cursor: 'pointer' }}
+                        title="Double-click to edit"
+                      >
+                        {list.title}
+                      </span>
+                    )}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{
                         fontSize: 11, fontWeight: 600, color: '#78716c',
                         background: '#e7e5df', borderRadius: 20,
                         padding: '1px 8px'
@@ -253,32 +281,31 @@ const updateCardTitle = async (id) => {
                                     ...provided.draggableProps.style
                                   }}
                                 >
-                                  {/* Card title - bold and visible */}
                                   {editingCard === card.id ? (
-  <input
-    autoFocus
-    value={editCardTitle}
-    onChange={e => setEditCardTitle(e.target.value)}
-    onKeyDown={e => {
-      if (e.key === 'Enter') updateCardTitle(card.id);
-      if (e.key === 'Escape') setEditingCard(null);
-    }}
-    onBlur={() => updateCardTitle(card.id)}
-    style={{
-      fontSize: 14, fontWeight: 700, color: '#1c1917',
-      border: '1px solid #2563eb', borderRadius: 5,
-      padding: '2px 6px', outline: 'none', width: '100%'
-    }}
-  />
-) : (
-  <div
-    onDoubleClick={() => { setEditingCard(card.id); setEditCardTitle(card.title); }}
-    style={{ fontSize: 15, fontWeight: 700, color: '#1c1917', lineHeight: 1.4, cursor: 'pointer' }}
-    title="Double-click to edit"
-  >
-    {card.title}
-  </div>
-)}
+                                    <input
+                                      autoFocus
+                                      value={editCardTitle}
+                                      onChange={e => setEditCardTitle(e.target.value)}
+                                      onKeyDown={e => {
+                                        if (e.key === 'Enter') updateCardTitle(card.id);
+                                        if (e.key === 'Escape') setEditingCard(null);
+                                      }}
+                                      onBlur={() => updateCardTitle(card.id)}
+                                      style={{
+                                        fontSize: 14, fontWeight: 700, color: '#1c1917',
+                                        border: '1px solid #2563eb', borderRadius: 5,
+                                        padding: '2px 6px', outline: 'none', width: '100%'
+                                      }}
+                                    />
+                                  ) : (
+                                    <div
+                                      onDoubleClick={() => { setEditingCard(card.id); setEditCardTitle(card.title); }}
+                                      style={{ fontSize: 15, fontWeight: 700, color: '#1c1917', lineHeight: 1.4, cursor: 'pointer' }}
+                                      title="Double-click to edit"
+                                    >
+                                      {card.title}
+                                    </div>
+                                  )}
                                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 9 }}>
                                     <span style={{
                                       fontSize: 11, fontWeight: 600,
@@ -316,10 +343,11 @@ const updateCardTitle = async (id) => {
                           }}
                           placeholder="Card title..."
                           style={{
-                            color: '#1c1917', fontSize: 13, fontFamily: 'inherit',
-fontWeight: 600,
-padding: '6px 4px', cursor: 'pointer', borderRadius: 6,
-display: 'flex', alignItems: 'center', gap: 6
+                            width: '100%', color: '#1c1917', fontSize: 13,
+                            fontFamily: 'inherit', fontWeight: 600,
+                            padding: '6px 8px', borderRadius: 6,
+                            border: '1px solid #e5e7eb', outline: 'none',
+                            boxSizing: 'border-box'
                           }}
                         />
                         <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
@@ -355,7 +383,7 @@ display: 'flex', alignItems: 'center', gap: 6
               );
             })}
 
-            {/* ── Add List — sits after the columns ── */}
+            {/* ── Add List ── */}
             <div style={{ width: 260, minWidth: 260, flexShrink: 0, alignSelf: 'flex-start' }}>
               {showAddList ? (
                 <div style={{
