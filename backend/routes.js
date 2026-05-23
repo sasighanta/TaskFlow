@@ -2,6 +2,34 @@ const express = require('express');
 const router = express.Router();
 const pool = require('./db');
 
+
+/* ✅ GET BOARD BY USER ID */
+router.get('/user/:userId/board', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const board = await pool.query(
+      'SELECT * FROM boards WHERE user_id=$1 LIMIT 1',
+      [userId]
+    );
+    if (board.rows.length === 0) {
+      return res.status(404).json({ error: "No board found" });
+    }
+    const boardId = board.rows[0].id;
+    const lists = await pool.query(
+      'SELECT * FROM lists WHERE board_id=$1 ORDER BY position',
+      [boardId]
+    );
+    const cards = await pool.query(
+      'SELECT * FROM cards WHERE list_id IN (SELECT id FROM lists WHERE board_id=$1) ORDER BY position',
+      [boardId]
+    );
+    res.json({ board: board.rows[0], lists: lists.rows, cards: cards.rows });
+  } catch (err) {
+    console.error("DATABASE ERROR:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 /* ✅ GET BOARD */
 router.get('/board/:id', async (req, res) => {
   try {
