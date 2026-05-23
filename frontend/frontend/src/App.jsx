@@ -256,8 +256,8 @@ function App() {
                       </span>
                      <button onClick={() => deleteList(list.id)} style={{
   background: '#ef4444', border: 'none', cursor: 'pointer',
-  color: '#fff', fontSize: 11, padding: '5px 10px',
-  borderRadius: 7, fontWeight: 600, fontFamily: 'inherit'
+  color: '#fff', fontSize: 11, padding: '3px 10px',
+  borderRadius: 6, fontWeight: 600, fontFamily: 'inherit'
 }}>Delete List</button>
                     </div>
                   </div>
@@ -327,10 +327,10 @@ function App() {
                                     }}>
                                       {card.tag_label || 'Task'}
                                     </span>
-                             <button onClick={() => deleteCard(card.id)} style={{
-  width: '100%', background: '#ef4444', border: 'none', cursor: 'pointer',
-  color: '#fff', fontSize: 12, padding: '7px 10px',
-  borderRadius: 7, fontWeight: 600, fontFamily: 'inherit'
+                     <button onClick={() => deleteCard(card.id)} style={{
+  background: '#ef4444', border: 'none', cursor: 'pointer',
+  color: '#fff', fontSize: 11, padding: '3px 10px',
+  borderRadius: 6, fontWeight: 600, fontFamily: 'inherit'
 }}>Delete</button>
                                   </div>
                                 </div>
