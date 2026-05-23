@@ -3,6 +3,7 @@ const cors = require('cors');
 require('dotenv').config();
 
 const routes = require('./routes');
+const authRoutes = require('./auth');
 
 const app = express();
 
@@ -13,6 +14,7 @@ app.use(cors({
 app.use(express.json());
 
 app.use('/api', routes);
+app.use('/api/auth', authRoutes);
 
 app.get('/', (req, res) => {
   res.send('API is running...');
