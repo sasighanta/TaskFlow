@@ -82,7 +82,8 @@ const [editCardTitle, setEditCardTitle] = useState("");
     fetchBoard();
   };
 
-  const updateListTitle = async (id) => {
+ const updateListTitle = async (id) => {
+   console.log("updateListTitle called", id, editListTitle);
   if (!editListTitle.trim()) return;
   await axios.put(`${API}/lists/${id}`, { title: editListTitle.trim() });
   setEditingList(null);
@@ -90,6 +91,7 @@ const [editCardTitle, setEditCardTitle] = useState("");
 };
 
 const updateCardTitle = async (id) => {
+    console.log("updateCardTitle called", id, editCardTitle);
   if (!editCardTitle.trim()) return;
   await axios.put(`${API}/cards/${id}/title`, { title: editCardTitle.trim() });
   setEditingCard(null);
