@@ -8,6 +8,7 @@ function Auth({ onLogin }) {
   const [form, setForm] = useState({ username: '', email: '', password: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = async () => {
     setError('');
@@ -73,14 +74,27 @@ function Auth({ onLogin }) {
           onChange={e => setForm({ ...form, email: e.target.value })}
           style={inputStyle}
         />
-        <input
-          placeholder="Password"
-          type="password"
-          value={form.password}
-          onChange={e => setForm({ ...form, password: e.target.value })}
-          onKeyDown={e => e.key === 'Enter' && handleSubmit()}
-          style={inputStyle}
-        />
+        <div style={{ position: 'relative', marginBottom: 12 }}>
+  <input
+    placeholder="Password"
+    type={showPassword ? 'text' : 'password'}
+    value={form.password}
+    onChange={e => setForm({ ...form, password: e.target.value })}
+    onKeyDown={e => e.key === 'Enter' && handleSubmit()}
+    style={{ ...inputStyle, marginBottom: 0 }}
+  />
+  <span
+    onClick={() => setShowPassword(!showPassword)}
+    style={{
+      position: 'absolute', right: 10, top: '50%',
+      transform: 'translateY(-50%)',
+      cursor: 'pointer', fontSize: 16, color: '#78716c',
+      userSelect: 'none'
+    }}
+  >
+    {showPassword ? '🙈' : '👁️'}
+  </span>
+</div>
 
         {/* Error */}
         {error && (
