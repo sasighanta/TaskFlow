@@ -72,10 +72,10 @@ function App() {
   };
 
   const deleteList = async (id) => {
-    await axios.delete(`${API}/lists/${id}`);
-    fetchBoard();
-  };
-
+  if (!window.confirm('Are you sure you want to delete this list and all its cards?')) return;
+  await axios.delete(`${API}/lists/${id}`);
+  fetchBoard();
+};
   const createCard = async (listId) => {
     const title = cardInputs[listId];
     if (!title || !title.trim()) return;
@@ -101,10 +101,11 @@ function App() {
     fetchBoard();
   };
 
-  const deleteCard = async (id) => {
-    await axios.delete(`${API}/cards/${id}`);
-    fetchBoard();
-  };
+ const deleteCard = async (id) => {
+  if (!window.confirm('Are you sure you want to delete this card?')) return;
+  await axios.delete(`${API}/cards/${id}`);
+  fetchBoard();
+};
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -148,14 +149,7 @@ function App() {
 
         {/* User info + Logout */}
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12 }}>
-          <span style={{
-  fontSize: 16, fontWeight: 900, fontStyle: 'italic',
-  fontFamily: "'Georgia', serif",
-  background: 'linear-gradient(135deg, #ffffff, #93c5fd)',
-  WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent'
-}}>
-  Hi, {user.username} ⭐
-</span>
+          
           <button
             onClick={handleLogout}
             style={{
@@ -178,16 +172,15 @@ function App() {
         letterSpacing: '-0.4px',
         textShadow: '0 2px 8px rgba(0,0,0,0.4)'
       }}>
-      <div style={{
+     <div style={{
   padding: '24px 24px 4px',
   textAlign: 'center',
   fontSize: 28, fontWeight: 800,
+  color: '#ffffff',
   letterSpacing: '-0.4px',
-  textShadow: '0 2px 8px rgba(0,0,0,0.4)',
-  background: 'linear-gradient(135deg, #ffffff, #93c5fd)',
-  WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent'
+  textShadow: '0 2px 8px rgba(0,0,0,0.4)'
 }}>
-  Welcome back, {user.username}! 👋
+  Welcome back, {user.username}! ✨
 </div>
         My Board
       </div>
@@ -434,15 +427,15 @@ function App() {
               ) : (
                 <button
                   onClick={() => setShowAddList(true)}
-                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.28)'}
-                  onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.18)'}
+                  onMouseEnter={e => e.currentTarget.style.background = '#1d4ed8'}
+onMouseLeave={e => e.currentTarget.style.background = '#2563eb'}
                   style={{
-                    width: '100%', background: 'rgba(255,255,255,0.18)', border: 'none',
-                    borderRadius: 12, padding: '11px 16px', cursor: 'pointer',
-                    color: '#fff', fontSize: 13, fontWeight: 600, fontFamily: 'inherit',
-                    display: 'flex', alignItems: 'center', gap: 8,
-                    backdropFilter: 'blur(4px)'
-                  }}
+  width: '100%', background: '#2563eb', border: 'none',
+  borderRadius: 10, padding: '11px 16px', cursor: 'pointer',
+  color: '#fff', fontSize: 13, fontWeight: 700, fontFamily: 'inherit',
+  display: 'flex', alignItems: 'center', gap: 8,
+  boxShadow: '0 2px 8px rgba(37,99,235,0.4)'
+}}
                 >
                   <span style={{ fontSize: 18 }}>+</span> Add another list
                 </button>
