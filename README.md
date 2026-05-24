@@ -1,120 +1,205 @@
-# Fullstack Trello : React (Vite), Node.js, Express, PostgreSQL (Supabase), Drag & Drop
-<p align="center">
-  <img src="./assets/image1.png" width="45%" />
-  <img src="./assets/image2.png" width="45%" />
-</p>
+# 🗂️ Trello Clone — Full Stack Project
+
+A modern full-stack Trello-inspired task management application built using React, Node.js, Express.js, and PostgreSQL with smooth drag-and-drop functionality.
+
+🔗 **Live App:** [trello-tau-amber.vercel.app](https://trello-tau-amber.vercel.app)  
+🔗 **Backend API:** [trello-hvze.onrender.com](https://trello-hvze.onrender.com)  
+📁 **GitHub:** [github.com/sasighanta/trello](https://github.com/sasighanta/trello)
 
 ---
 
-## LIVE DEMO
+## 📸 Screenshots
 
-**Frontend (Vercel):**  
-https://trello-tau-amber.vercel.app  
+### Login Page
+![Login](./screenshots/login.png)
 
-**Backend (Render):**  
-https://trello-backend-i0lq.onrender.com  
+### Dashboard
+![Dashboard](./screenshots/dashboard.png)
 
-**GitHub Repo:**  
-https://github.com/sasighanta/trello  
-
----
-
-## 1) Overview
-
-This project is a full-stack Kanban-style project management application inspired by Trello. It allows users to visually organize tasks using boards, lists, and cards with smooth drag-and-drop functionality.
-
-The application closely replicates Trello’s UI patterns, layout, and interaction design, enabling efficient workflow management.
+### Board View
+![Board](./screenshots/board.png)
 
 ---
 
-## 2) Tech Stack
+## ✨ Features
 
-- **Frontend:** React.js (Vite)  
-- **Backend:** Node.js + Express.js  
-- **Database:** PostgreSQL (Supabase)  
-- **Drag & Drop:** @hello-pangea/dnd  
+### 🔐 Authentication
+- User Login & Register
+- Session-based per-user experience
+- Personalized dashboard per account
 
----
+### 🏠 Dashboard
+- Board overview after login
+- `Login → Dashboard → Board` flow
+- Create Board placeholder for future expansion
 
-## 3) Core Features
+### 🗂️ Board & Task Management
+- Create, rename (double-click), and delete lists
+- Create, edit (title + description), and delete cards
+- Description preview shown directly on card
+- Color-coded tags — Design, Feature, Backend, Bug
 
-### Board Management
-- Create and view boards  
-- Display all lists and cards within a board  
+### 🔄 Drag & Drop
+- Smooth drag-and-drop card movement
+- Move cards across lists
+- Persistent ordering saved to database
 
-### Lists Management
-- Create, edit, and delete lists  
-- Reorder lists using drag-and-drop  
-
-### Cards Management
-- Create cards with title  
-- Edit card title and description  
-- Delete cards  
-- Drag and drop cards between lists  
-- Reorder cards within a list  
-
----
-
-## 4) Additional Features
-
-- Persistent data using PostgreSQL  
-- Clean and responsive UI  
-- Real-time UI updates after actions  
-
----
-
-## 5) Setup Instructions
-
-### Backend Setup
-- cd backend
-- npm install
-- npm run dev
-
-### Frontend Setup
-- cd frontend
-- npm install
-- npm run dev
-
+### 🎨 UI/UX
+- Hover-based trash icons (no cluttered delete buttons)
+- Dashed interactive "Add" buttons
+- Cards lift on hover with smooth transitions
+- Toast notifications for every action
+- Empty state UI with icon
+- Avatar initial in header
+- Scrollable columns for long lists
+- Pencil icon hint on editable titles
 
 ---
 
-## 6) Deployment
+## 🛠️ Tech Stack
 
-- Frontend: Vercel  
-- Backend: Render / Railway  
-
----
-
-## 7) Database Design
-
-The application uses a relational schema with the following structure:
-
-- **Boards** → contains multiple lists  
-- **Lists** → belongs to a board and contains multiple cards  
-- **Cards** → belongs to a list  
-
-Relationships:
-
-- One-to-Many: Board → Lists  
-- One-to-Many: List → Cards  
-
-Position fields are used to maintain ordering of lists and cards.
+| Layer | Technology |
+|-------|-----------|
+| Frontend | React, Vite, Axios, @hello-pangea/dnd, react-hot-toast |
+| Backend | Node.js, Express.js |
+| Database | PostgreSQL |
+| Hosting | Vercel (frontend), Render (backend + database) |
 
 ---
 
-## 8) Future Improvements
+## 📂 Project Structure
 
-- Labels and filtering  
-- Due dates  
-- Checklist inside cards  
-- Assign members to cards  
-- Multiple boards support  
-- Comments and activity log  
-- File attachments  
-- Mobile responsiveness improvements  
+```
+trello/
+├── frontend/
+│   └── src/
+│       ├── App.jsx
+│       ├── Auth.jsx
+│       ├── Dashboard.jsx
+│       └── components.jsx
+│
+├── backend/
+│   ├── routes.js
+│   ├── db.js
+│   └── index.js
+│
+└── README.md
+```
 
 ---
 
-## 10) Final Note
+## ⚙️ Installation & Setup
 
-This project demonstrates full-stack development skills including frontend UI design, backend API development, database design, and state management with drag-and-drop interactions.
+### 1️⃣ Clone Repository
+```bash
+git clone https://github.com/sasighanta/trello.git
+```
+
+### 2️⃣ Backend Setup
+```bash
+cd trello/backend
+npm install
+```
+
+Create a `.env` file:
+```env
+DATABASE_URL=your_postgresql_connection_string
+PORT=5000
+```
+
+Run the server:
+```bash
+node index.js
+```
+
+### 3️⃣ Frontend Setup
+```bash
+cd trello/frontend
+npm install
+npm run dev
+```
+
+Frontend runs on `http://localhost:5173`
+
+---
+
+## 🗄️ Database Schema
+
+```sql
+CREATE TABLE users (
+  id SERIAL PRIMARY KEY,
+  username VARCHAR(100) UNIQUE NOT NULL,
+  password TEXT NOT NULL
+);
+
+CREATE TABLE boards (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER REFERENCES users(id),
+  title TEXT
+);
+
+CREATE TABLE lists (
+  id SERIAL PRIMARY KEY,
+  board_id INTEGER REFERENCES boards(id),
+  title TEXT,
+  position INTEGER
+);
+
+CREATE TABLE cards (
+  id SERIAL PRIMARY KEY,
+  list_id INTEGER REFERENCES lists(id),
+  title TEXT,
+  description TEXT,
+  tag VARCHAR(50),
+  tag_label VARCHAR(50),
+  position INTEGER
+);
+```
+
+---
+
+## 📡 API Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/auth/register` | Register a new user |
+| POST | `/api/auth/login` | Login and get token |
+| GET | `/api/user/:userId/board` | Fetch full board with lists and cards |
+| POST | `/api/lists` | Create a new list |
+| PUT | `/api/lists/:id` | Update list title |
+| DELETE | `/api/lists/:id` | Delete list and its cards |
+| POST | `/api/cards` | Create a new card |
+| PUT | `/api/cards/:id/title` | Update card title |
+| PUT | `/api/cards/:id/description` | Update card description |
+| PUT | `/api/cards/reorder` | Reorder cards after drag and drop |
+| DELETE | `/api/cards/:id` | Delete a card |
+
+---
+
+## 🚀 Future Improvements
+- Multiple boards per user
+- Due dates on cards
+- Team collaboration
+- Activity history
+- Dark mode
+- Labels and priorities
+- Search and filters
+
+---
+
+## 👨‍💻 Author
+
+**Sasi Sai Tulasi Ghanta**  
+[GitHub](https://github.com/sasighanta) • [LinkedIn](https://linkedin.com/in/sasighanta)
+
+---
+
+## ⭐ Conclusion
+
+This project demonstrates full-stack development skills including REST APIs, database integration, authentication, drag-and-drop functionality, deployment, and responsive UI/UX. Built as a placement-focused project to showcase modern web development practices.
+
+---
+
+## 📄 License
+
+This project is open source and available under the [MIT License](LICENSE).
