@@ -6,8 +6,6 @@ A modern full-stack Trello-inspired task management application built using Reac
 🔗 **Backend API:** [trello-hvze.onrender.com](https://trello-hvze.onrender.com)  
 📁 **GitHub:** [github.com/sasighanta/trello](https://github.com/sasighanta/trello)
 
----
-
 ## 📸 Screenshots
 
 ### Login Page
