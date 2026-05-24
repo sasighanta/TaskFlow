@@ -213,7 +213,7 @@ function App() {
             WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
             fontStyle: 'italic', fontFamily: "'Georgia', serif"
           }}>
-            Trello
+            TaskFlow
           </span>
 
           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10 }}>

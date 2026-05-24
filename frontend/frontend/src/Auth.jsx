@@ -56,7 +56,7 @@ const [showPassword, setShowPassword] = useState(false);
           background: 'linear-gradient(135deg, #1d4ed8, #7c3aed)',
           WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent'
         }}>
-          Trello
+          TaskFlow
         </div>
 
         <h2 style={{ fontSize: 20, fontWeight: 700, color: '#1c1917', marginBottom: 4 }}>
