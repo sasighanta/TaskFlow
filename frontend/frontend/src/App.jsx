@@ -6,7 +6,7 @@ import Dashboard from './Dashboard';
 import toast, { Toaster } from 'react-hot-toast';
 import { TrashButton, EditableTitle } from './components';
 
-const API = "https://trello-hvze.onrender.com/api";
+const API = "https://trello-backend-i0lq.onrender.com";
 
 const TAGS = [
   { tag: 'tag-blue', label: 'Design' },
