@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import axios from 'axios';
 
-const API = "https://trello-backend-i0lq.onrender.com";
+const API = "https://trello-backend-i0lq.onrender.com/api";
 
 function Auth({ onLogin }) {
   const [isLogin, setIsLogin] = useState(true);
