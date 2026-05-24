@@ -3,7 +3,7 @@
 A modern full-stack Trello-inspired task management application built using React, Node.js, Express.js, and PostgreSQL with smooth drag-and-drop functionality.
 
 🔗 **Live App:** [trello-tau-amber.vercel.app](https://trello-tau-amber.vercel.app)  
-🔗 **Backend API:** [trello-hvze.onrender.com](https://trello-hvze.onrender.com)  
+🔗 **Backend API:** [trello-backend-i0lq.onrender.com](https://trello-backend-i0lq.onrender.com)
 📁 **GitHub:** [github.com/sasighanta/trello](https://github.com/sasighanta/trello)
 
 ## 📸 Screenshots
@@ -60,8 +60,8 @@ A modern full-stack Trello-inspired task management application built using Reac
 |-------|-----------|
 | Frontend | React, Vite, Axios, @hello-pangea/dnd, react-hot-toast |
 | Backend | Node.js, Express.js |
-| Database | PostgreSQL |
-| Hosting | Vercel (frontend), Render (backend + database) |
+| Database | PostgreSQL (Supabase) |
+| Hosting | Vercel (frontend), Render (backend), Supabase (database) |
 
 ---
 
