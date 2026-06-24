@@ -1,4 +1,4 @@
-# 🗂️ Trello Clone — Full Stack Project
+# 🗂️ TaskFlow — Full Stack Project
 
 A modern full-stack Trello-inspired task management application built using React, Node.js, Express.js, and PostgreSQL with smooth drag-and-drop functionality.
 
