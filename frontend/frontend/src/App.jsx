@@ -5,6 +5,7 @@ import Auth from './Auth';
 import Dashboard from './Dashboard';
 import toast, { Toaster } from 'react-hot-toast';
 import { TrashButton, EditableTitle } from './components';
+import socket from './socket'; // ← NEW
 
 const API = "https://trello-backend-i0lq.onrender.com/api";
 
@@ -45,6 +46,9 @@ function App() {
   const [modalTitle, setModalTitle] = useState('');
   const [hoveredCard, setHoveredCard] = useState(null);
 
+  // ── Get boardId from fetched data ─────────────────────────────────────────
+  const boardId = data.board?.id;
+
   const fetchBoard = async () => {
     try {
       const res = await axios.get(`${API}/user/${user.id}/board`);
@@ -56,10 +60,32 @@ function App() {
     }
   };
 
+  // ── Socket.io: join board room + listen for updates ───────────────────────
+  useEffect(() => {
+    if (!boardId || !showBoard) return;
+
+    // Tell server: "I'm watching this board"
+    socket.emit('join-board', boardId);
+
+    // When another user makes a change, re-fetch the board
+    socket.on('board-updated', ({ type, payload }) => {
+      console.log('Real-time update:', type, payload);
+      // Re-fetch so everyone sees the latest state
+      fetchBoard();
+    });
+
+    // Cleanup: leave room when leaving the board page
+    return () => {
+      socket.emit('leave-board', boardId);
+      socket.off('board-updated');
+    };
+  }, [boardId, showBoard]);
+
   useEffect(() => {
     if (user && showBoard) fetchBoard();
   }, [user, showBoard]);
 
+  // ── Drag and drop ─────────────────────────────────────────────────────────
   const onDragEnd = async (result) => {
     if (!result.destination) return;
     const { destination, draggableId } = result;
@@ -70,23 +96,28 @@ function App() {
     updatedCards.splice(destination.index, 0, dragged);
     updatedCards = updatedCards.map((card, index) => ({ ...card, position: index }));
     setData({ ...data, cards: updatedCards });
-    await axios.put(`${API}/cards/reorder`, { cards: updatedCards });
+    // ← boardId added so backend can emit to the room
+    await axios.put(`${API}/cards/reorder`, { cards: updatedCards, boardId });
   };
 
+  // ── Create list ───────────────────────────────────────────────────────────
   const createList = async () => {
     if (!newList.trim()) return;
-    await axios.post(`${API}/lists`, { title: newList.trim(), board_id: data.board?.id || 1 });
+    // board_id already tells backend which board — socket emit happens in backend
+    await axios.post(`${API}/lists`, { title: newList.trim(), board_id: boardId || 1 });
     setNewList("");
     setShowAddList(false);
     fetchBoard();
     toast.success('List created!');
   };
 
+  // ── Delete list ───────────────────────────────────────────────────────────
   const deleteList = async (id) => {
     const confirmDelete = window.confirm("Delete this list and all its cards?");
     if (!confirmDelete) return;
     try {
-      await axios.delete(`${API}/lists/${id}`);
+      // ← boardId added in request body so backend can emit to room
+      await axios.delete(`${API}/lists/${id}`, { data: { boardId } });
       fetchBoard();
       toast.error('List deleted');
     } catch (err) {
@@ -94,47 +125,61 @@ function App() {
     }
   };
 
+  // ── Create card ───────────────────────────────────────────────────────────
   const createCard = async (listId) => {
     const title = cardInputs[listId];
     if (!title || !title.trim()) return;
     const t = TAGS[tagIndex % TAGS.length];
     tagIndex++;
-    await axios.post(`${API}/cards`, { title: title.trim(), list_id: listId, tag: t.tag, tag_label: t.label });
+    // ← boardId added so backend can emit to room
+    await axios.post(`${API}/cards`, {
+      title: title.trim(), list_id: listId,
+      tag: t.tag, tag_label: t.label,
+      boardId  // ← NEW
+    });
     setCardInputs({ ...cardInputs, [listId]: "" });
     setAddingCard(null);
     fetchBoard();
     toast.success('Card created!');
   };
 
+  // ── Update list title ─────────────────────────────────────────────────────
   const updateListTitle = async (id) => {
     if (!editListTitle.trim()) return;
-    await axios.put(`${API}/lists/${id}`, { title: editListTitle.trim() });
+    // ← boardId added so backend can emit to room
+    await axios.put(`${API}/lists/${id}`, { title: editListTitle.trim(), boardId });
     setEditingList(null);
     fetchBoard();
     toast.success('List updated!');
   };
 
+  // ── Update card title (inline edit) ──────────────────────────────────────
   const updateCardTitle = async (id) => {
     if (!editCardTitle.trim()) return;
-    await axios.put(`${API}/cards/${id}/title`, { title: editCardTitle.trim() });
+    // ← boardId added so backend can emit to room
+    await axios.put(`${API}/cards/${id}/title`, { title: editCardTitle.trim(), boardId });
     setEditingCard(null);
     fetchBoard();
   };
 
+  // ── Update card (modal save) ──────────────────────────────────────────────
   const updateCard = async () => {
     if (!modalTitle.trim()) return;
-    await axios.put(`${API}/cards/${selectedCard.id}/title`, { title: modalTitle.trim() });
-    await axios.put(`${API}/cards/${selectedCard.id}/description`, { description: modalDesc });
+    // ← boardId added so backend can emit to room
+    await axios.put(`${API}/cards/${selectedCard.id}/title`, { title: modalTitle.trim(), boardId });
+    await axios.put(`${API}/cards/${selectedCard.id}/description`, { description: modalDesc, boardId });
     setSelectedCard(null);
     fetchBoard();
     toast.success('Card updated!');
   };
 
+  // ── Delete card ───────────────────────────────────────────────────────────
   const deleteCard = async (id) => {
     const confirmDelete = window.confirm("Delete this card?");
     if (!confirmDelete) return;
     try {
-      await axios.delete(`${API}/cards/${id}`);
+      // ← boardId added in request body so backend can emit to room
+      await axios.delete(`${API}/cards/${id}`, { data: { boardId } });
       fetchBoard();
       toast.error('Card deleted');
     } catch (err) {
@@ -172,11 +217,10 @@ function App() {
         style: { fontFamily: "'Segoe UI', sans-serif", fontSize: 13, fontWeight: 600 }
       }} />
 
-      {/* Background with overlay */}
+      {/* Background */}
       <div style={{
         position: 'fixed', inset: 0, zIndex: 0,
         background: 'url("https://images.unsplash.com/photo-1611532736597-de2d4265fba3?w=1920&q=80") center/cover no-repeat',
-        filter: 'blur(0px)',
       }} />
       <div style={{ position: 'fixed', inset: 0, zIndex: 1, background: 'rgba(0,0,0,0.1)' }} />
 
@@ -215,6 +259,29 @@ function App() {
           }}>
             TaskFlow
           </span>
+
+          {/* ── NEW: Live indicator ── */}
+          <div style={{
+            marginLeft: 14, display: 'flex', alignItems: 'center', gap: 5,
+            background: 'rgba(16,185,129,0.15)',
+            border: '1px solid rgba(16,185,129,0.3)',
+            borderRadius: 20, padding: '3px 10px',
+          }}>
+            <div style={{
+              width: 7, height: 7, borderRadius: '50%',
+              background: '#10b981',
+              boxShadow: '0 0 6px #10b981',
+              animation: 'pulse 2s infinite'
+            }} />
+            <span style={{ color: '#10b981', fontSize: 11, fontWeight: 600 }}>Live</span>
+          </div>
+
+          <style>{`
+            @keyframes pulse {
+              0%, 100% { opacity: 1; }
+              50% { opacity: 0.4; }
+            }
+          `}</style>
 
           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{
@@ -325,7 +392,7 @@ function App() {
                       </div>
                     </div>
 
-                    {/* Cards — scrollable */}
+                    {/* Cards */}
                     <Droppable droppableId={list.id.toString()}>
                       {(provided) => (
                         <div
@@ -344,8 +411,7 @@ function App() {
                               display: 'flex', flexDirection: 'column',
                               alignItems: 'center', justifyContent: 'center',
                               padding: '20px 0', gap: 6,
-                              border: '1.5px dashed #e5e7eb',
-                              borderRadius: 9,
+                              border: '1.5px dashed #e5e7eb', borderRadius: 9,
                             }}>
                               <span style={{ fontSize: 22 }}>📋</span>
                               <p style={{ fontSize: 12, color: '#a8a29e', margin: 0, fontWeight: 700 }}>
@@ -506,7 +572,6 @@ function App() {
                         </button>
                       )}
                     </div>
-
                   </div>
                 );
               })}

@@ -1,8 +1,15 @@
 import { useState } from 'react';
 import toast, { Toaster } from 'react-hot-toast';
+import WorkspaceSettings from './WorkspaceSettings';
 
 function Dashboard({ user, onOpenBoard, onLogout }) {
   const [hovered, setHovered] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+
+  // For now using a default workspaceId of 1.
+  // Later when you add workspace creation flow, replace with the real selected workspace id.
+  const activeWorkspaceId = 1;
+
   const avatarLetter = user.username ? user.username[0].toUpperCase() : '?';
 
   return (
@@ -44,6 +51,24 @@ function Dashboard({ user, onOpenBoard, onLogout }) {
           </span>
 
           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10 }}>
+
+            {/* ── NEW: Workspace Settings button ── */}
+            <button
+              onClick={() => setShowSettings(true)}
+              style={{
+                background: 'rgba(255,255,255,0.12)',
+                border: '1px solid rgba(255,255,255,0.25)',
+                color: '#fff', borderRadius: 7, padding: '6px 14px',
+                fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                fontFamily: 'inherit', transition: 'background 0.2s ease',
+                display: 'flex', alignItems: 'center', gap: 6,
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.22)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.12)'}
+            >
+              ⚙️ Workspace
+            </button>
+
             <div style={{
               width: 32, height: 32, borderRadius: '50%',
               background: 'linear-gradient(135deg, #2563eb, #7c3aed)',
@@ -115,7 +140,7 @@ function Dashboard({ user, onOpenBoard, onLogout }) {
                 overflow: 'hidden',
               }}
             >
-              {/* Decorative circle */}
+              {/* Decorative circles */}
               <div style={{
                 position: 'absolute', right: -20, top: -20,
                 width: 80, height: 80, borderRadius: '50%',
@@ -134,9 +159,7 @@ function Dashboard({ user, onOpenBoard, onLogout }) {
                 </div>
               </div>
 
-              <div style={{
-                color: 'rgba(255,255,255,0.7)', fontSize: 11, fontWeight: 500
-              }}>
+              <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 11, fontWeight: 500 }}>
                 Click to open →
               </div>
             </div>
@@ -172,6 +195,15 @@ function Dashboard({ user, onOpenBoard, onLogout }) {
         </div>
 
       </div>
+
+      {/* ── NEW: WorkspaceSettings modal ── */}
+      {showSettings && (
+        <WorkspaceSettings
+          workspaceId={activeWorkspaceId}
+          onClose={() => setShowSettings(false)}
+        />
+      )}
+
     </div>
   );
 }
