@@ -1,15 +1,11 @@
-// socket.js
-// frontend/src/socket.js
-
 import { io } from 'socket.io-client';
 
-// Same URL as your API in App.jsx — no /api at the end, just the base URL
-const socket = io('https://trello-backend-i0lq.onrender.com', {
+const socket = io('https://taskflow-production-0940.up.railway.app', {
   autoConnect: true,
   reconnection: true,
   reconnectionAttempts: 5,
   reconnectionDelay: 1000,
-  transports: ['websocket', 'polling'], // try websocket first, fall back to polling
+  transports: ['websocket', 'polling'],
 });
 
 socket.on('connect', () => {

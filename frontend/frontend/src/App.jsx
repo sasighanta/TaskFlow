@@ -7,7 +7,7 @@ import toast, { Toaster } from 'react-hot-toast';
 import { TrashButton, EditableTitle } from './components';
 import socket from './socket'; // ← NEW
 
-const API = "https://trello-backend-i0lq.onrender.com/api";
+const API = "https://taskflow-production-0940.up.railway.app/api";
 
 const TAGS = [
   { tag: 'tag-blue', label: 'Design' },
