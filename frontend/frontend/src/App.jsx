@@ -24,6 +24,22 @@ const TAG_STYLES = {
   'tag-red':   { background: '#fee2e2', color: '#b91c1c' },
 };
 
+// ── Priority config ────────────────────────────────────────────────────────
+const PRIORITY_CONFIG = {
+  low:      { label: 'Low',      color: '#6b7280', bg: '#f3f4f6', dot: '#9ca3af' },
+  medium:   { label: 'Medium',   color: '#2563eb', bg: '#dbeafe', dot: '#3b82f6' },
+  high:     { label: 'High',     color: '#d97706', bg: '#fef3c7', dot: '#f59e0b' },
+  critical: { label: 'Critical', color: '#dc2626', bg: '#fee2e2', dot: '#ef4444' },
+};
+
+// ── Status config ──────────────────────────────────────────────────────────
+const STATUS_CONFIG = {
+  todo:        { label: 'Todo',        color: '#6b7280', bg: '#f3f4f6' },
+  in_progress: { label: 'In Progress', color: '#2563eb', bg: '#dbeafe' },
+  blocked:     { label: 'Blocked',     color: '#dc2626', bg: '#fee2e2' },
+  done:        { label: 'Done',        color: '#15803d', bg: '#dcfce7' },
+};
+
 let tagIndex = 0;
 
 function App() {
@@ -45,8 +61,12 @@ function App() {
   const [selectedCard, setSelectedCard] = useState(null);
   const [modalDesc, setModalDesc] = useState('');
   const [modalTitle, setModalTitle] = useState('');
+  const [modalPriority, setModalPriority] = useState('medium');   // ← NEW
+  const [modalStatus, setModalStatus] = useState('todo');          // ← NEW
+  const [modalLabels, setModalLabels] = useState([]);              // ← NEW
+  const [labelInput, setLabelInput] = useState('');                // ← NEW
   const [hoveredCard, setHoveredCard] = useState(null);
-  const [showActivity, setShowActivity] = useState(false); // ← NEW
+  const [showActivity, setShowActivity] = useState(false);
 
   const boardId = data.board?.id;
 
@@ -61,12 +81,10 @@ function App() {
     }
   };
 
-  // ── Socket.io ─────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!boardId || !showBoard) return;
     socket.emit('join-board', boardId);
     socket.on('board-updated', ({ type, payload }) => {
-      console.log('Real-time update:', type, payload);
       fetchBoard();
     });
     return () => {
@@ -79,7 +97,6 @@ function App() {
     if (user && showBoard) fetchBoard();
   }, [user, showBoard]);
 
-  // ── Drag and drop ─────────────────────────────────────────────────────────
   const onDragEnd = async (result) => {
     if (!result.destination) return;
     const { source, destination, draggableId } = result;
@@ -93,123 +110,104 @@ function App() {
     updatedCards = updatedCards.map((card, index) => ({ ...card, position: index }));
     setData({ ...data, cards: updatedCards });
     await axios.put(`${API}/cards/reorder`, {
-      cards: updatedCards,
-      boardId,
-      userId: user.id,
-      movedCard: dragged,
-      fromList: fromListId,
-      toList: toListId,
+      cards: updatedCards, boardId, userId: user.id,
+      movedCard: dragged, fromList: fromListId, toList: toListId,
     });
   };
 
-  // ── Create list ───────────────────────────────────────────────────────────
   const createList = async () => {
     if (!newList.trim()) return;
-    await axios.post(`${API}/lists`, {
-      title: newList.trim(),
-      board_id: boardId || 1,
-      userId: user.id  // ← NEW
-    });
-    setNewList("");
-    setShowAddList(false);
-    fetchBoard();
-    toast.success('List created!');
+    await axios.post(`${API}/lists`, { title: newList.trim(), board_id: boardId || 1, userId: user.id });
+    setNewList(""); setShowAddList(false);
+    fetchBoard(); toast.success('List created!');
   };
 
-  // ── Delete list ───────────────────────────────────────────────────────────
   const deleteList = async (id) => {
-    const confirmDelete = window.confirm("Delete this list and all its cards?");
-    if (!confirmDelete) return;
+    if (!window.confirm("Delete this list and all its cards?")) return;
     try {
-      await axios.delete(`${API}/lists/${id}`, { data: { boardId, userId: user.id } }); // ← userId added
-      fetchBoard();
-      toast.error('List deleted');
-    } catch (err) {
-      toast.error("Failed to delete list");
-    }
+      await axios.delete(`${API}/lists/${id}`, { data: { boardId, userId: user.id } });
+      fetchBoard(); toast.error('List deleted');
+    } catch { toast.error("Failed to delete list"); }
   };
 
-  // ── Create card ───────────────────────────────────────────────────────────
   const createCard = async (listId) => {
     const title = cardInputs[listId];
     if (!title || !title.trim()) return;
-    const t = TAGS[tagIndex % TAGS.length];
-    tagIndex++;
+    const t = TAGS[tagIndex % TAGS.length]; tagIndex++;
     await axios.post(`${API}/cards`, {
       title: title.trim(), list_id: listId,
       tag: t.tag, tag_label: t.label,
-      boardId, userId: user.id  // ← userId added
+      boardId, userId: user.id
     });
     setCardInputs({ ...cardInputs, [listId]: "" });
-    setAddingCard(null);
-    fetchBoard();
-    toast.success('Card created!');
+    setAddingCard(null); fetchBoard(); toast.success('Card created!');
   };
 
-  // ── Update list title ─────────────────────────────────────────────────────
   const updateListTitle = async (id) => {
     if (!editListTitle.trim()) return;
-    await axios.put(`${API}/lists/${id}`, {
-      title: editListTitle.trim(),
-      boardId, userId: user.id  // ← userId added
-    });
-    setEditingList(null);
-    fetchBoard();
-    toast.success('List updated!');
+    await axios.put(`${API}/lists/${id}`, { title: editListTitle.trim(), boardId, userId: user.id });
+    setEditingList(null); fetchBoard(); toast.success('List updated!');
   };
 
-  // ── Update card title (inline) ────────────────────────────────────────────
   const updateCardTitle = async (id) => {
     if (!editCardTitle.trim()) return;
-    await axios.put(`${API}/cards/${id}/title`, {
-      title: editCardTitle.trim(),
-      boardId, userId: user.id  // ← userId added
-    });
-    setEditingCard(null);
-    fetchBoard();
+    await axios.put(`${API}/cards/${id}/title`, { title: editCardTitle.trim(), boardId, userId: user.id });
+    setEditingCard(null); fetchBoard();
   };
 
-  // ── Update card (modal) ───────────────────────────────────────────────────
+  // ── Update card with priority, status, labels ─────────────────────────────
   const updateCard = async () => {
     if (!modalTitle.trim()) return;
-    await axios.put(`${API}/cards/${selectedCard.id}/title`, {
-      title: modalTitle.trim(), boardId, userId: user.id  // ← userId added
+    await axios.put(`${API}/cards/${selectedCard.id}/title`, { title: modalTitle.trim(), boardId, userId: user.id });
+    await axios.put(`${API}/cards/${selectedCard.id}/description`, { description: modalDesc, boardId, userId: user.id });
+    // ← NEW: save priority, status, labels
+    await axios.put(`${API}/cards/${selectedCard.id}/meta`, {
+      priority: modalPriority,
+      status: modalStatus,
+      labels: modalLabels,
+      boardId, userId: user.id
     });
-    await axios.put(`${API}/cards/${selectedCard.id}/description`, {
-      description: modalDesc, boardId, userId: user.id  // ← userId added
-    });
-    setSelectedCard(null);
-    fetchBoard();
-    toast.success('Card updated!');
+    setSelectedCard(null); fetchBoard(); toast.success('Card updated!');
   };
 
-  // ── Delete card ───────────────────────────────────────────────────────────
   const deleteCard = async (id) => {
-    const confirmDelete = window.confirm("Delete this card?");
-    if (!confirmDelete) return;
+    if (!window.confirm("Delete this card?")) return;
     try {
-      await axios.delete(`${API}/cards/${id}`, { data: { boardId, userId: user.id } }); // ← userId added
-      fetchBoard();
-      toast.error('Card deleted');
-    } catch (err) {
-      toast.error("Failed to delete card");
-    }
+      await axios.delete(`${API}/cards/${id}`, { data: { boardId, userId: user.id } });
+      fetchBoard(); toast.error('Card deleted');
+    } catch { toast.error("Failed to delete card"); }
   };
+
+  // ── Open modal with card data including new fields ────────────────────────
+  const openCardModal = (card) => {
+    setSelectedCard(card);
+    setModalTitle(card.title);
+    setModalDesc(card.description || '');
+    setModalPriority(card.priority || 'medium');      // ← NEW
+    setModalStatus(card.status || 'todo');             // ← NEW
+    setModalLabels(card.labels || []);                 // ← NEW
+    setLabelInput('');
+  };
+
+  // ── Label helpers ─────────────────────────────────────────────────────────
+  const addLabel = () => {
+    const val = labelInput.trim().toLowerCase();
+    if (!val || modalLabels.includes(val)) return;
+    setModalLabels([...modalLabels, val]);
+    setLabelInput('');
+  };
+  const removeLabel = (label) => setModalLabels(modalLabels.filter(l => l !== label));
 
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    setUser(null);
-    setShowBoard(false);
+    setUser(null); setShowBoard(false);
   };
 
   if (!user) return <Auth onLogin={(u) => setUser(u)} />;
-
   if (!showBoard) return (
     <>
-      <Toaster position="bottom-right" toastOptions={{
-        style: { fontFamily: "'Segoe UI', sans-serif", fontSize: 13, fontWeight: 600 }
-      }} />
+      <Toaster position="bottom-right" toastOptions={{ style: { fontFamily: "'Segoe UI', sans-serif", fontSize: 13, fontWeight: 600 } }} />
       <Dashboard user={user} onOpenBoard={() => setShowBoard(true)} onLogout={handleLogout} />
     </>
   );
@@ -218,170 +216,75 @@ function App() {
 
   return (
     <div style={{ minHeight: '100vh', position: 'relative', fontFamily: "'Segoe UI', -apple-system, sans-serif" }}>
-      <Toaster position="bottom-right" toastOptions={{
-        style: { fontFamily: "'Segoe UI', sans-serif", fontSize: 13, fontWeight: 600 }
-      }} />
+      <Toaster position="bottom-right" toastOptions={{ style: { fontFamily: "'Segoe UI', sans-serif", fontSize: 13, fontWeight: 600 } }} />
 
-      {/* Background */}
-      <div style={{
-        position: 'fixed', inset: 0, zIndex: 0,
-        background: 'url("https://images.unsplash.com/photo-1611532736597-de2d4265fba3?w=1920&q=80") center/cover no-repeat',
-      }} />
+      <div style={{ position: 'fixed', inset: 0, zIndex: 0, background: 'url("https://images.unsplash.com/photo-1611532736597-de2d4265fba3?w=1920&q=80") center/cover no-repeat' }} />
       <div style={{ position: 'fixed', inset: 0, zIndex: 1, background: 'rgba(0,0,0,0.1)' }} />
 
       <div style={{ position: 'relative', zIndex: 2 }}>
 
-        {/* ── Header ── */}
-        <div style={{
-          display: 'flex', alignItems: 'center',
-          padding: '10px 24px',
-          background: 'rgba(0,0,0,0.35)',
-          backdropFilter: 'blur(10px)',
-          borderBottom: '1px solid rgba(255,255,255,0.1)'
-        }}>
-          <button
-            onClick={() => setShowBoard(false)}
-            style={{
-              background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)',
-              color: '#fff', borderRadius: 7, padding: '5px 12px',
-              fontSize: 12, fontWeight: 600, cursor: 'pointer',
-              fontFamily: 'inherit', marginRight: 14,
-              display: 'flex', alignItems: 'center', gap: 5,
-            }}
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', padding: '10px 24px', background: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(10px)', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+          <button onClick={() => setShowBoard(false)}
+            style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', borderRadius: 7, padding: '5px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', marginRight: 14, display: 'flex', alignItems: 'center', gap: 5 }}
             onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'}
             onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
-          >
-            ← Dashboard
-          </button>
+          >← Dashboard</button>
 
-          <span style={{
-            fontSize: 24, fontWeight: 900, letterSpacing: '2px',
-            textTransform: 'uppercase',
-            background: 'linear-gradient(135deg, #ffffff, #93c5fd)',
-            WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-            fontStyle: 'italic', fontFamily: "'Georgia', serif"
-          }}>
-            TaskFlow
-          </span>
+          <span style={{ fontSize: 24, fontWeight: 900, letterSpacing: '2px', textTransform: 'uppercase', background: 'linear-gradient(135deg, #ffffff, #93c5fd)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontStyle: 'italic', fontFamily: "'Georgia', serif" }}>TaskFlow</span>
 
-          {/* Live indicator */}
-          <div style={{
-            marginLeft: 14, display: 'flex', alignItems: 'center', gap: 5,
-            background: 'rgba(16,185,129,0.15)',
-            border: '1px solid rgba(16,185,129,0.3)',
-            borderRadius: 20, padding: '3px 10px',
-          }}>
-            <div style={{
-              width: 7, height: 7, borderRadius: '50%',
-              background: '#10b981', boxShadow: '0 0 6px #10b981',
-              animation: 'pulse 2s infinite'
-            }} />
+          <div style={{ marginLeft: 14, display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: 20, padding: '3px 10px' }}>
+            <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#10b981', boxShadow: '0 0 6px #10b981', animation: 'pulse 2s infinite' }} />
             <span style={{ color: '#10b981', fontSize: 11, fontWeight: 600 }}>Live</span>
           </div>
-
           <style>{`@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }`}</style>
 
           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10 }}>
-
-            {/* ── NEW: Activity button ── */}
-            <button
-              onClick={() => setShowActivity(true)}
-              style={{
-                background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)',
-                color: '#fff', borderRadius: 7, padding: '6px 14px',
-                fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-                display: 'flex', alignItems: 'center', gap: 6,
-                transition: 'background 0.2s ease'
-              }}
+            <button onClick={() => setShowActivity(true)}
+              style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)', color: '#fff', borderRadius: 7, padding: '6px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
               onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.25)'}
               onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.15)'}
-            >
-              📋 Activity
-            </button>
-
-            <div style={{
-              width: 32, height: 32, borderRadius: '50%',
-              background: 'linear-gradient(135deg, #2563eb, #7c3aed)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: '#fff', fontSize: 13, fontWeight: 700,
-              boxShadow: '0 2px 8px rgba(0,0,0,0.3)', flexShrink: 0
-            }}>
-              {avatarLetter}
-            </div>
-            <button
-              onClick={handleLogout}
-              style={{
-                background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)',
-                color: '#fff', borderRadius: 7, padding: '6px 14px',
-                fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-                transition: 'background 0.2s ease'
-              }}
+            >📋 Activity</button>
+            <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'linear-gradient(135deg, #2563eb, #7c3aed)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 13, fontWeight: 700, boxShadow: '0 2px 8px rgba(0,0,0,0.3)', flexShrink: 0 }}>{avatarLetter}</div>
+            <button onClick={handleLogout}
+              style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)', color: '#fff', borderRadius: 7, padding: '6px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
               onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.25)'}
               onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.15)'}
-            >
-              Logout
-            </button>
+            >Logout</button>
           </div>
         </div>
 
-        {/* ── Welcome ── */}
-        <div style={{
-          textAlign: 'center', padding: '16px 24px 4px',
-          color: '#fff', fontSize: 20, fontWeight: 600,
-          textShadow: '0 2px 8px rgba(0,0,0,0.4)', letterSpacing: '-0.2px'
-        }}>
+        <div style={{ textAlign: 'center', padding: '16px 24px 4px', color: '#fff', fontSize: 20, fontWeight: 600, textShadow: '0 2px 8px rgba(0,0,0,0.4)' }}>
           Welcome back, {user.username}! ✨
         </div>
 
-        {/* ── Lists ── */}
+        {/* Lists */}
         {loading ? (
-          <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 80, color: '#fff', fontSize: 14 }}>
-            Loading board...
-          </div>
+          <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 80, color: '#fff', fontSize: 14 }}>Loading board...</div>
         ) : (
           <DragDropContext onDragEnd={onDragEnd}>
-            <div style={{
-              display: 'flex', flexWrap: 'nowrap', gap: 14,
-              padding: '14px 24px 32px',
-              alignItems: 'flex-start',
-              overflowX: 'auto',
-              minHeight: 'calc(100vh - 130px)'
-            }}>
+            <div style={{ display: 'flex', flexWrap: 'nowrap', gap: 14, padding: '14px 24px 32px', alignItems: 'flex-start', overflowX: 'auto', minHeight: 'calc(100vh - 130px)' }}>
+
               {data.lists.map(list => {
                 const listCards = data.cards.filter(c => c.list_id === list.id);
                 return (
-                  <div key={list.id} style={{
-                    background: 'rgba(255,255,255,0.94)',
-                    borderRadius: 14, width: 280, minWidth: 264, flexShrink: 0,
-                    boxShadow: '0 4px 20px rgba(0,0,0,0.18)',
-                    display: 'flex', flexDirection: 'column',
-                    maxHeight: 'calc(100vh - 170px)',
-                    transition: 'box-shadow 0.2s ease',
-                  }}
+                  <div key={list.id} style={{ background: 'rgba(255,255,255,0.94)', borderRadius: 14, width: 280, minWidth: 264, flexShrink: 0, boxShadow: '0 4px 20px rgba(0,0,0,0.18)', display: 'flex', flexDirection: 'column', maxHeight: 'calc(100vh - 170px)', transition: 'box-shadow 0.2s ease' }}
                     onMouseEnter={e => e.currentTarget.style.boxShadow = '0 8px 32px rgba(0,0,0,0.26)'}
                     onMouseLeave={e => e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,0,0,0.18)'}
                   >
                     {/* List Header */}
-                    <div style={{
-                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                      padding: '10px 10px 8px', borderBottom: '1px solid #ece9e0', flexShrink: 0,
-                    }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 10px 8px', borderBottom: '1px solid #ece9e0', flexShrink: 0 }}>
                       {editingList === list.id ? (
-                        <input autoFocus value={editListTitle}
-                          onChange={e => setEditListTitle(e.target.value)}
+                        <input autoFocus value={editListTitle} onChange={e => setEditListTitle(e.target.value)}
                           onKeyDown={e => { if (e.key === 'Enter') updateListTitle(list.id); if (e.key === 'Escape') setEditingList(null); }}
                           onBlur={() => updateListTitle(list.id)}
                           style={{ fontSize: 14, fontWeight: 700, color: '#1c1917', border: '1px solid #2563eb', borderRadius: 5, padding: '2px 6px', outline: 'none', width: '140px' }}
                         />
                       ) : (
-                        <EditableTitle value={list.title} isList
-                          onDoubleClick={() => { setEditingList(list.id); setEditListTitle(list.title); }}
-                        />
+                        <EditableTitle value={list.title} isList onDoubleClick={() => { setEditingList(list.id); setEditListTitle(list.title); }} />
                       )}
                       <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                        <span style={{ fontSize: 11, fontWeight: 600, color: '#78716c', background: '#e7e5df', borderRadius: 20, padding: '1px 8px' }}>
-                          {listCards.length}
-                        </span>
+                        <span style={{ fontSize: 11, fontWeight: 600, color: '#78716c', background: '#e7e5df', borderRadius: 20, padding: '1px 8px' }}>{listCards.length}</span>
                         <TrashButton onClick={() => deleteList(list.id)} />
                       </div>
                     </div>
@@ -402,6 +305,8 @@ function App() {
                             const tagStyle = TAG_STYLES[card.tag] || TAG_STYLES['tag-blue'];
                             const tagLabel = card.tag_label || TAGS[card.id % TAGS.length].label;
                             const isHovered = hoveredCard === card.id;
+                            const priority = PRIORITY_CONFIG[card.priority] || PRIORITY_CONFIG.medium;
+                            const status = STATUS_CONFIG[card.status] || STATUS_CONFIG.todo;
                             return (
                               <Draggable key={card.id} draggableId={card.id.toString()} index={index}>
                                 {(provided, snapshot) => (
@@ -410,35 +315,63 @@ function App() {
                                     onMouseLeave={() => setHoveredCard(null)}
                                     style={{
                                       background: '#fff', borderRadius: 9, padding: '10px 12px',
-                                      border: '1px solid #ece9e0', cursor: 'grab',
+                                      border: `1px solid ${snapshot.isDragging ? '#2563eb' : '#ece9e0'}`,
+                                      cursor: 'grab',
                                       boxShadow: snapshot.isDragging ? '0 10px 28px rgba(0,0,0,0.22)' : isHovered ? '0 4px 14px rgba(0,0,0,0.12)' : '0 1px 3px rgba(0,0,0,0.07)',
                                       transform: snapshot.isDragging ? undefined : isHovered ? 'translateY(-2px)' : 'translateY(0)',
                                       transition: 'box-shadow 0.2s ease, transform 0.2s ease',
                                       ...provided.draggableProps.style
                                     }}
                                   >
-                                    {editingCard === card.id ? (
-                                      <input autoFocus value={editCardTitle}
-                                        onChange={e => setEditCardTitle(e.target.value)}
-                                        onKeyDown={e => { if (e.key === 'Enter') updateCardTitle(card.id); if (e.key === 'Escape') setEditingCard(null); }}
-                                        onBlur={() => updateCardTitle(card.id)}
-                                        style={{ fontSize: 13, fontWeight: 600, color: '#1c1917', border: '1px solid #2563eb', borderRadius: 5, padding: '2px 6px', outline: 'none', width: '100%' }}
-                                      />
-                                    ) : (
-                                      <div onClick={() => { setSelectedCard(card); setModalTitle(card.title); setModalDesc(card.description || ''); }}
-                                        style={{ fontSize: 13, fontWeight: 600, color: '#1c1917', lineHeight: 1.4, cursor: 'pointer', marginBottom: 8 }}
-                                        title="Click to edit"
-                                      >
-                                        {card.title}
-                                        {card.description && (
-                                          <span style={{ display: 'block', fontSize: 11, color: '#a8a29e', marginTop: 3, fontWeight: 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                            📝 {card.description}
+                                    {/* ── Priority dot (top right) ── */}
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
+                                      <div style={{ flex: 1 }}>
+                                        {editingCard === card.id ? (
+                                          <input autoFocus value={editCardTitle} onChange={e => setEditCardTitle(e.target.value)}
+                                            onKeyDown={e => { if (e.key === 'Enter') updateCardTitle(card.id); if (e.key === 'Escape') setEditingCard(null); }}
+                                            onBlur={() => updateCardTitle(card.id)}
+                                            style={{ fontSize: 13, fontWeight: 600, color: '#1c1917', border: '1px solid #2563eb', borderRadius: 5, padding: '2px 6px', outline: 'none', width: '100%' }}
+                                          />
+                                        ) : (
+                                          <div onClick={() => openCardModal(card)}
+                                            style={{ fontSize: 13, fontWeight: 600, color: '#1c1917', lineHeight: 1.4, cursor: 'pointer' }}
+                                            title="Click to edit"
+                                          >
+                                            {card.title}
+                                            {card.description && (
+                                              <span style={{ display: 'block', fontSize: 11, color: '#a8a29e', marginTop: 3, fontWeight: 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                📝 {card.description}
+                                              </span>
+                                            )}
+                                          </div>
+                                        )}
+                                      </div>
+                                      {/* Priority dot */}
+                                      <div title={`Priority: ${priority.label}`} style={{ width: 10, height: 10, borderRadius: '50%', background: priority.dot, flexShrink: 0, marginLeft: 8, marginTop: 3 }} />
+                                    </div>
+
+                                    {/* ── Labels row ── */}
+                                    {card.labels && card.labels.length > 0 && (
+                                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 6 }}>
+                                        {card.labels.map(label => (
+                                          <span key={label} style={{ fontSize: 10, fontWeight: 600, padding: '1px 6px', borderRadius: 4, background: '#f3f4f6', color: '#374151' }}>
+                                            #{label}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    )}
+
+                                    {/* ── Bottom row: tag + status + delete ── */}
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
+                                      <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'wrap' }}>
+                                        <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 7px', borderRadius: 5, ...tagStyle }}>{tagLabel}</span>
+                                        {/* Status badge */}
+                                        {card.status && card.status !== 'todo' && (
+                                          <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 6px', borderRadius: 4, background: status.bg, color: status.color }}>
+                                            {status.label}
                                           </span>
                                         )}
                                       </div>
-                                    )}
-                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                      <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 9px', borderRadius: 5, ...tagStyle }}>{tagLabel}</span>
                                       <TrashButton onClick={() => deleteCard(card.id)} />
                                     </div>
                                   </div>
@@ -468,7 +401,7 @@ function App() {
                         </>
                       ) : (
                         <button onClick={() => setAddingCard(list.id)}
-                          style={{ width: '100%', textAlign: 'left', background: 'transparent', border: '1.5px dashed #d1d5db', color: '#9ca3af', fontSize: 12, fontFamily: 'inherit', padding: '7px 10px', cursor: 'pointer', borderRadius: 7, display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600, transition: 'border-color 0.2s ease, color 0.2s ease, background 0.2s ease' }}
+                          style={{ width: '100%', textAlign: 'left', background: 'transparent', border: '1.5px dashed #d1d5db', color: '#9ca3af', fontSize: 12, fontFamily: 'inherit', padding: '7px 10px', cursor: 'pointer', borderRadius: 7, display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600, transition: 'all 0.2s ease' }}
                           onMouseEnter={e => { e.currentTarget.style.borderColor = '#2563eb'; e.currentTarget.style.color = '#2563eb'; e.currentTarget.style.background = '#eff6ff'; }}
                           onMouseLeave={e => { e.currentTarget.style.borderColor = '#d1d5db'; e.currentTarget.style.color = '#9ca3af'; e.currentTarget.style.background = 'transparent'; }}
                         >
@@ -506,27 +439,79 @@ function App() {
           </DragDropContext>
         )}
 
-        {/* ── Card Modal ── */}
+        {/* ── Card Modal — upgraded with priority, status, labels ── */}
         {selectedCard && (
           <div onClick={() => setSelectedCard(null)}
             style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(4px)' }}
           >
             <div onClick={e => e.stopPropagation()}
-              style={{ background: '#fff', borderRadius: 16, padding: '28px 28px 24px', width: 480, maxWidth: '90vw', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}
+              style={{ background: '#fff', borderRadius: 16, padding: '28px 28px 24px', width: 520, maxWidth: '90vw', boxShadow: '0 20px 60px rgba(0,0,0,0.3)', maxHeight: '90vh', overflowY: 'auto' }}
             >
+              {/* Modal header */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
                 <span style={{ fontSize: 13, fontWeight: 600, color: '#78716c' }}>✏️ Edit Card</span>
-                <button onClick={() => setSelectedCard(null)} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#a8a29e', padding: '0 4px' }}>✕</button>
+                <button onClick={() => setSelectedCard(null)} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#a8a29e' }}>✕</button>
               </div>
-              <label style={{ fontSize: 11, fontWeight: 700, color: '#9ca3af', display: 'block', marginBottom: 6, letterSpacing: '0.05em' }}>TITLE</label>
+
+              {/* Title */}
+              <label style={labelStyle}>TITLE</label>
               <input value={modalTitle} onChange={e => setModalTitle(e.target.value)}
-                style={{ width: '100%', border: '1px solid #e5e7eb', borderRadius: 8, padding: '10px 12px', fontSize: 15, fontWeight: 600, fontFamily: 'inherit', color: '#1c1917', outline: 'none', boxSizing: 'border-box', marginBottom: 16 }}
+                style={{ ...inputStyle, marginBottom: 16, fontSize: 15, fontWeight: 600 }}
               />
-              <label style={{ fontSize: 11, fontWeight: 700, color: '#9ca3af', display: 'block', marginBottom: 6, letterSpacing: '0.05em' }}>DESCRIPTION</label>
+
+              {/* Priority + Status row */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+                <div>
+                  <label style={labelStyle}>PRIORITY</label>
+                  <select value={modalPriority} onChange={e => setModalPriority(e.target.value)} style={selectStyle}>
+                    <option value="low">🟢 Low</option>
+                    <option value="medium">🔵 Medium</option>
+                    <option value="high">🟡 High</option>
+                    <option value="critical">🔴 Critical</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={labelStyle}>STATUS</label>
+                  <select value={modalStatus} onChange={e => setModalStatus(e.target.value)} style={selectStyle}>
+                    <option value="todo">Todo</option>
+                    <option value="in_progress">In Progress</option>
+                    <option value="blocked">Blocked</option>
+                    <option value="done">Done</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Labels */}
+              <label style={labelStyle}>LABELS</label>
+              <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
+                <input
+                  value={labelInput}
+                  onChange={e => setLabelInput(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addLabel(); } }}
+                  placeholder="Type label + Enter (e.g. frontend)"
+                  style={{ ...inputStyle, flex: 1, marginBottom: 0 }}
+                />
+                <button onClick={addLabel} style={{ background: '#2563eb', color: '#fff', border: 'none', borderRadius: 8, padding: '0 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Add</button>
+              </div>
+              {modalLabels.length > 0 && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
+                  {modalLabels.map(label => (
+                    <span key={label} style={{ fontSize: 12, fontWeight: 600, padding: '3px 10px', borderRadius: 6, background: '#f3f4f6', color: '#374151', display: 'flex', alignItems: 'center', gap: 5 }}>
+                      #{label}
+                      <button onClick={() => removeLabel(label)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', fontSize: 13, padding: 0, lineHeight: 1 }}>×</button>
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {/* Description */}
+              <label style={labelStyle}>DESCRIPTION</label>
               <textarea value={modalDesc} onChange={e => setModalDesc(e.target.value)}
-                placeholder="Add a description..." rows={5}
-                style={{ width: '100%', border: '1px solid #e5e7eb', borderRadius: 8, padding: '10px 12px', fontSize: 13, fontFamily: 'inherit', color: '#1c1917', outline: 'none', resize: 'vertical', boxSizing: 'border-box', marginBottom: 20 }}
+                placeholder="Add a description..." rows={4}
+                style={{ ...inputStyle, resize: 'vertical', marginBottom: 20 }}
               />
+
+              {/* Actions */}
               <div style={{ display: 'flex', gap: 10 }}>
                 <button onClick={updateCard} style={{ flex: 1, background: '#2563eb', color: '#fff', border: 'none', borderRadius: 8, padding: '10px', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Save</button>
                 <button onClick={() => setSelectedCard(null)} style={{ background: '#f5f5f4', color: '#78716c', border: 'none', borderRadius: 8, padding: '10px 16px', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
@@ -536,15 +521,25 @@ function App() {
         )}
       </div>
 
-      {/* ── NEW: Activity Feed panel ── */}
-      <ActivityFeed
-        boardId={boardId}
-        isOpen={showActivity}
-        onClose={() => setShowActivity(false)}
-        socket={socket}
-      />
+      <ActivityFeed boardId={boardId} isOpen={showActivity} onClose={() => setShowActivity(false)} socket={socket} />
     </div>
   );
 }
+
+// ── Shared modal styles ────────────────────────────────────────────────────
+const labelStyle = {
+  fontSize: 11, fontWeight: 700, color: '#9ca3af',
+  display: 'block', marginBottom: 6, letterSpacing: '0.05em'
+};
+const inputStyle = {
+  width: '100%', border: '1px solid #e5e7eb', borderRadius: 8,
+  padding: '10px 12px', fontSize: 13, fontFamily: 'inherit',
+  color: '#1c1917', outline: 'none', boxSizing: 'border-box',
+};
+const selectStyle = {
+  width: '100%', border: '1px solid #e5e7eb', borderRadius: 8,
+  padding: '9px 12px', fontSize: 13, fontFamily: 'inherit',
+  color: '#1c1917', outline: 'none', background: '#fff', cursor: 'pointer',
+};
 
 export default App;

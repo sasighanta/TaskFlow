@@ -238,5 +238,27 @@ router.delete('/lists/:id', async (req, res) => {
   }
   res.send("Deleted");
 });
-
+/* ✅ UPDATE CARD META (priority, status, labels) */
+router.put('/cards/:id/meta', async (req, res) => {
+  const { id } = req.params;
+  const { priority, status, labels, boardId, userId } = req.body;
+  try {
+    const result = await pool.query(
+      `UPDATE cards SET priority=$1, status=$2, labels=$3 WHERE id=$4 RETURNING *`,
+      [priority, status, labels, id]
+    );
+    const updatedCard = result.rows[0];
+    await logActivity(boardId, userId, 'updated card details', 'card', id, updatedCard.title);
+    if (boardId) {
+      const io = req.app.get('io');
+      io.to(`board:${boardId}`).emit('board-updated', {
+        type: 'card-updated', payload: { card: updatedCard }
+      });
+    }
+    res.json(updatedCard);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
 module.exports = router;
