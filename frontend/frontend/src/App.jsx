@@ -7,6 +7,7 @@ import toast, { Toaster } from 'react-hot-toast';
 import { TrashButton, EditableTitle } from './components';
 import socket from './socket';
 import ActivityFeed from './ActivityFeed';
+import NotificationBell from './NotificationBell';
 
 const API = "https://taskflow-production-0940.up.railway.app/api";
 
@@ -24,7 +25,6 @@ const TAG_STYLES = {
   'tag-red':   { background: '#fee2e2', color: '#b91c1c' },
 };
 
-// ── Priority config ────────────────────────────────────────────────────────
 const PRIORITY_CONFIG = {
   low:      { label: 'Low',      color: '#6b7280', bg: '#f3f4f6', dot: '#9ca3af' },
   medium:   { label: 'Medium',   color: '#2563eb', bg: '#dbeafe', dot: '#3b82f6' },
@@ -32,13 +32,37 @@ const PRIORITY_CONFIG = {
   critical: { label: 'Critical', color: '#dc2626', bg: '#fee2e2', dot: '#ef4444' },
 };
 
-// ── Status config ──────────────────────────────────────────────────────────
 const STATUS_CONFIG = {
   todo:        { label: 'Todo',        color: '#6b7280', bg: '#f3f4f6' },
   in_progress: { label: 'In Progress', color: '#2563eb', bg: '#dbeafe' },
   blocked:     { label: 'Blocked',     color: '#dc2626', bg: '#fee2e2' },
   done:        { label: 'Done',        color: '#15803d', bg: '#dcfce7' },
 };
+
+// ── Due date helper: is it overdue? ──────────────────────────────────────
+function isOverdue(dueDate, status) {
+  if (!dueDate || status === 'done') return false;
+  return new Date(dueDate) < new Date();
+}
+function isDueSoon(dueDate, status) {
+  if (!dueDate || status === 'done') return false;
+  const due = new Date(dueDate);
+  const now = new Date();
+  const hoursLeft = (due - now) / (1000 * 60 * 60);
+  return hoursLeft > 0 && hoursLeft < 24;
+}
+function formatDueDate(dueDate) {
+  const d = new Date(dueDate);
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) +
+    ' ' + d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+}
+// Convert ISO date to datetime-local input format
+function toDatetimeLocal(isoString) {
+  if (!isoString) return '';
+  const d = new Date(isoString);
+  const pad = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
 
 let tagIndex = 0;
 
@@ -61,10 +85,11 @@ function App() {
   const [selectedCard, setSelectedCard] = useState(null);
   const [modalDesc, setModalDesc] = useState('');
   const [modalTitle, setModalTitle] = useState('');
-  const [modalPriority, setModalPriority] = useState('medium');   // ← NEW
-  const [modalStatus, setModalStatus] = useState('todo');          // ← NEW
-  const [modalLabels, setModalLabels] = useState([]);              // ← NEW
-  const [labelInput, setLabelInput] = useState('');                // ← NEW
+  const [modalPriority, setModalPriority] = useState('medium');
+  const [modalStatus, setModalStatus] = useState('todo');
+  const [modalLabels, setModalLabels] = useState([]);
+  const [labelInput, setLabelInput] = useState('');
+  const [modalDueDate, setModalDueDate] = useState('');   // ← NEW
   const [hoveredCard, setHoveredCard] = useState(null);
   const [showActivity, setShowActivity] = useState(false);
 
@@ -155,16 +180,18 @@ function App() {
     setEditingCard(null); fetchBoard();
   };
 
-  // ── Update card with priority, status, labels ─────────────────────────────
+  // ── Update card — now also saves due date ─────────────────────────────────
   const updateCard = async () => {
     if (!modalTitle.trim()) return;
     await axios.put(`${API}/cards/${selectedCard.id}/title`, { title: modalTitle.trim(), boardId, userId: user.id });
     await axios.put(`${API}/cards/${selectedCard.id}/description`, { description: modalDesc, boardId, userId: user.id });
-    // ← NEW: save priority, status, labels
     await axios.put(`${API}/cards/${selectedCard.id}/meta`, {
-      priority: modalPriority,
-      status: modalStatus,
-      labels: modalLabels,
+      priority: modalPriority, status: modalStatus, labels: modalLabels,
+      boardId, userId: user.id
+    });
+    // ← NEW: save due date
+    await axios.put(`${API}/cards/${selectedCard.id}/due-date`, {
+      due_date: modalDueDate ? new Date(modalDueDate).toISOString() : null,
       boardId, userId: user.id
     });
     setSelectedCard(null); fetchBoard(); toast.success('Card updated!');
@@ -178,18 +205,17 @@ function App() {
     } catch { toast.error("Failed to delete card"); }
   };
 
-  // ── Open modal with card data including new fields ────────────────────────
   const openCardModal = (card) => {
     setSelectedCard(card);
     setModalTitle(card.title);
     setModalDesc(card.description || '');
-    setModalPriority(card.priority || 'medium');      // ← NEW
-    setModalStatus(card.status || 'todo');             // ← NEW
-    setModalLabels(card.labels || []);                 // ← NEW
+    setModalPriority(card.priority || 'medium');
+    setModalStatus(card.status || 'todo');
+    setModalLabels(card.labels || []);
+    setModalDueDate(toDatetimeLocal(card.due_date));  // ← NEW
     setLabelInput('');
   };
 
-  // ── Label helpers ─────────────────────────────────────────────────────────
   const addLabel = () => {
     const val = labelInput.trim().toLowerCase();
     if (!val || modalLabels.includes(val)) return;
@@ -240,6 +266,9 @@ function App() {
           <style>{`@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }`}</style>
 
           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10 }}>
+            {/* ── NEW: Notification bell ── */}
+            <NotificationBell userId={user.id} />
+
             <button onClick={() => setShowActivity(true)}
               style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)', color: '#fff', borderRadius: 7, padding: '6px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
               onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.25)'}
@@ -307,6 +336,8 @@ function App() {
                             const isHovered = hoveredCard === card.id;
                             const priority = PRIORITY_CONFIG[card.priority] || PRIORITY_CONFIG.medium;
                             const status = STATUS_CONFIG[card.status] || STATUS_CONFIG.todo;
+                            const overdue = isOverdue(card.due_date, card.status);
+                            const dueSoon = isDueSoon(card.due_date, card.status);
                             return (
                               <Draggable key={card.id} draggableId={card.id.toString()} index={index}>
                                 {(provided, snapshot) => (
@@ -315,7 +346,7 @@ function App() {
                                     onMouseLeave={() => setHoveredCard(null)}
                                     style={{
                                       background: '#fff', borderRadius: 9, padding: '10px 12px',
-                                      border: `1px solid ${snapshot.isDragging ? '#2563eb' : '#ece9e0'}`,
+                                      border: `1px solid ${overdue ? '#fca5a5' : snapshot.isDragging ? '#2563eb' : '#ece9e0'}`,
                                       cursor: 'grab',
                                       boxShadow: snapshot.isDragging ? '0 10px 28px rgba(0,0,0,0.22)' : isHovered ? '0 4px 14px rgba(0,0,0,0.12)' : '0 1px 3px rgba(0,0,0,0.07)',
                                       transform: snapshot.isDragging ? undefined : isHovered ? 'translateY(-2px)' : 'translateY(0)',
@@ -323,7 +354,7 @@ function App() {
                                       ...provided.draggableProps.style
                                     }}
                                   >
-                                    {/* ── Priority dot (top right) ── */}
+                                    {/* Priority dot row */}
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
                                       <div style={{ flex: 1 }}>
                                         {editingCard === card.id ? (
@@ -346,11 +377,23 @@ function App() {
                                           </div>
                                         )}
                                       </div>
-                                      {/* Priority dot */}
                                       <div title={`Priority: ${priority.label}`} style={{ width: 10, height: 10, borderRadius: '50%', background: priority.dot, flexShrink: 0, marginLeft: 8, marginTop: 3 }} />
                                     </div>
 
-                                    {/* ── Labels row ── */}
+                                    {/* ── NEW: Due date badge ── */}
+                                    {card.due_date && (
+                                      <div style={{
+                                        display: 'inline-flex', alignItems: 'center', gap: 4,
+                                        fontSize: 10, fontWeight: 600, padding: '2px 7px', borderRadius: 4,
+                                        marginBottom: 6,
+                                        background: overdue ? '#fee2e2' : dueSoon ? '#fef3c7' : '#f3f4f6',
+                                        color: overdue ? '#dc2626' : dueSoon ? '#d97706' : '#6b7280',
+                                      }}>
+                                        {overdue ? '⏰ Overdue' : dueSoon ? '⏳' : '📅'} {formatDueDate(card.due_date)}
+                                      </div>
+                                    )}
+
+                                    {/* Labels row */}
                                     {card.labels && card.labels.length > 0 && (
                                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 6 }}>
                                         {card.labels.map(label => (
@@ -361,11 +404,10 @@ function App() {
                                       </div>
                                     )}
 
-                                    {/* ── Bottom row: tag + status + delete ── */}
+                                    {/* Bottom row */}
                                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
                                       <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'wrap' }}>
                                         <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 7px', borderRadius: 5, ...tagStyle }}>{tagLabel}</span>
-                                        {/* Status badge */}
                                         {card.status && card.status !== 'todo' && (
                                           <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 6px', borderRadius: 4, background: status.bg, color: status.color }}>
                                             {status.label}
@@ -439,7 +481,7 @@ function App() {
           </DragDropContext>
         )}
 
-        {/* ── Card Modal — upgraded with priority, status, labels ── */}
+        {/* ── Card Modal ── */}
         {selectedCard && (
           <div onClick={() => setSelectedCard(null)}
             style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(4px)' }}
@@ -447,19 +489,16 @@ function App() {
             <div onClick={e => e.stopPropagation()}
               style={{ background: '#fff', borderRadius: 16, padding: '28px 28px 24px', width: 520, maxWidth: '90vw', boxShadow: '0 20px 60px rgba(0,0,0,0.3)', maxHeight: '90vh', overflowY: 'auto' }}
             >
-              {/* Modal header */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
                 <span style={{ fontSize: 13, fontWeight: 600, color: '#78716c' }}>✏️ Edit Card</span>
                 <button onClick={() => setSelectedCard(null)} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#a8a29e' }}>✕</button>
               </div>
 
-              {/* Title */}
               <label style={labelStyle}>TITLE</label>
               <input value={modalTitle} onChange={e => setModalTitle(e.target.value)}
                 style={{ ...inputStyle, marginBottom: 16, fontSize: 15, fontWeight: 600 }}
               />
 
-              {/* Priority + Status row */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
                 <div>
                   <label style={labelStyle}>PRIORITY</label>
@@ -481,7 +520,15 @@ function App() {
                 </div>
               </div>
 
-              {/* Labels */}
+              {/* ── NEW: Due date picker ── */}
+              <label style={labelStyle}>DUE DATE</label>
+              <input
+                type="datetime-local"
+                value={modalDueDate}
+                onChange={e => setModalDueDate(e.target.value)}
+                style={{ ...inputStyle, marginBottom: 16 }}
+              />
+
               <label style={labelStyle}>LABELS</label>
               <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
                 <input
@@ -504,14 +551,12 @@ function App() {
                 </div>
               )}
 
-              {/* Description */}
               <label style={labelStyle}>DESCRIPTION</label>
               <textarea value={modalDesc} onChange={e => setModalDesc(e.target.value)}
                 placeholder="Add a description..." rows={4}
                 style={{ ...inputStyle, resize: 'vertical', marginBottom: 20 }}
               />
 
-              {/* Actions */}
               <div style={{ display: 'flex', gap: 10 }}>
                 <button onClick={updateCard} style={{ flex: 1, background: '#2563eb', color: '#fff', border: 'none', borderRadius: 8, padding: '10px', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Save</button>
                 <button onClick={() => setSelectedCard(null)} style={{ background: '#f5f5f4', color: '#78716c', border: 'none', borderRadius: 8, padding: '10px 16px', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
@@ -526,7 +571,6 @@ function App() {
   );
 }
 
-// ── Shared modal styles ────────────────────────────────────────────────────
 const labelStyle = {
   fontSize: 11, fontWeight: 700, color: '#9ca3af',
   display: 'block', marginBottom: 6, letterSpacing: '0.05em'

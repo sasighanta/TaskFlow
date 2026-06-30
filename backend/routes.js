@@ -261,4 +261,61 @@ router.put('/cards/:id/meta', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+router.put('/cards/:id/due-date', async (req, res) => {
+  const { id } = req.params;
+  const { due_date, boardId, userId } = req.body;
+  try {
+    const result = await pool.query(
+      'UPDATE cards SET due_date=$1 WHERE id=$2 RETURNING *',
+      [due_date, id]
+    );
+    const updatedCard = result.rows[0];
+    await logActivity(boardId, userId, 'set due date', 'card', id, updatedCard.title);
+    if (boardId) {
+      const io = req.app.get('io');
+      io.to(`board:${boardId}`).emit('board-updated', {
+        type: 'card-updated', payload: { card: updatedCard }
+      });
+    }
+    res.json(updatedCard);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/* ✅ GET NOTIFICATIONS FOR LOGGED IN USER */
+router.get('/notifications/:userId', async (req, res) => {
+  const { userId } = req.params;
+  try {
+    const result = await pool.query(
+      `SELECT n.*, c.title as card_title
+       FROM notifications n
+       LEFT JOIN cards c ON n.card_id = c.id
+       WHERE n.user_id = $1
+       ORDER BY n.created_at DESC
+       LIMIT 30`,
+      [userId]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/* ✅ MARK ALL NOTIFICATIONS AS READ */
+router.put('/notifications/:userId/read-all', async (req, res) => {
+  const { userId } = req.params;
+  try {
+    await pool.query(
+      'UPDATE notifications SET is_read=true WHERE user_id=$1 AND is_read=false',
+      [userId]
+    );
+    res.json({ message: 'All marked as read' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;
