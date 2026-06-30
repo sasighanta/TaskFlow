@@ -318,4 +318,53 @@ router.put('/notifications/:userId/read-all', async (req, res) => {
   }
 });
 
+// ══════════════════════════════════════════════════════════════════════════
+// ADD TO backend/routes.js — paste before module.exports
+// ══════════════════════════════════════════════════════════════════════════
+
+/* ✅ SEARCH + FILTER CARDS */
+router.get('/boards/:boardId/search', async (req, res) => {
+  const { boardId } = req.params;
+  const { q, priority, status, label, overdue } = req.query;
+
+  try {
+    let conditions = ['l.board_id = $1'];
+    let params = [boardId];
+
+    if (q) {
+      params.push(`%${q}%`);
+      conditions.push(`(c.title ILIKE $${params.length} OR c.description ILIKE $${params.length})`);
+    }
+    if (priority) {
+      params.push(priority);
+      conditions.push(`c.priority = $${params.length}`);
+    }
+    if (status) {
+      params.push(status);
+      conditions.push(`c.status = $${params.length}`);
+    }
+    if (label) {
+      params.push(label);
+      conditions.push(`$${params.length} = ANY(c.labels)`);
+    }
+    if (overdue === 'true') {
+      conditions.push(`c.due_date < NOW() AND c.status != 'done'`);
+    }
+
+    const query = `
+      SELECT c.*, l.title as list_title
+      FROM cards c
+      JOIN lists l ON c.list_id = l.id
+      WHERE ${conditions.join(' AND ')}
+      ORDER BY c.position
+    `;
+
+    const result = await pool.query(query, params);
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;

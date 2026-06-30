@@ -8,6 +8,7 @@ import { TrashButton, EditableTitle } from './components';
 import socket from './socket';
 import ActivityFeed from './ActivityFeed';
 import NotificationBell from './NotificationBell';
+import FilterBar from './FilterBar';
 
 const API = "https://taskflow-production-0940.up.railway.app/api";
 
@@ -39,7 +40,6 @@ const STATUS_CONFIG = {
   done:        { label: 'Done',        color: '#15803d', bg: '#dcfce7' },
 };
 
-// ── Due date helper: is it overdue? ──────────────────────────────────────
 function isOverdue(dueDate, status) {
   if (!dueDate || status === 'done') return false;
   return new Date(dueDate) < new Date();
@@ -47,8 +47,7 @@ function isOverdue(dueDate, status) {
 function isDueSoon(dueDate, status) {
   if (!dueDate || status === 'done') return false;
   const due = new Date(dueDate);
-  const now = new Date();
-  const hoursLeft = (due - now) / (1000 * 60 * 60);
+  const hoursLeft = (due - new Date()) / (1000 * 60 * 60);
   return hoursLeft > 0 && hoursLeft < 24;
 }
 function formatDueDate(dueDate) {
@@ -56,7 +55,6 @@ function formatDueDate(dueDate) {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) +
     ' ' + d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 }
-// Convert ISO date to datetime-local input format
 function toDatetimeLocal(isoString) {
   if (!isoString) return '';
   const d = new Date(isoString);
@@ -89,9 +87,14 @@ function App() {
   const [modalStatus, setModalStatus] = useState('todo');
   const [modalLabels, setModalLabels] = useState([]);
   const [labelInput, setLabelInput] = useState('');
-  const [modalDueDate, setModalDueDate] = useState('');   // ← NEW
+  const [modalDueDate, setModalDueDate] = useState('');
   const [hoveredCard, setHoveredCard] = useState(null);
   const [showActivity, setShowActivity] = useState(false);
+
+  // ── NEW: Filter state ───────────────────────────────────────────────────
+  const [matchedCardIds, setMatchedCardIds] = useState(null); // null = no filter active
+  const [matchCount, setMatchCount] = useState(0);
+  const [filtersActive, setFiltersActive] = useState(false);
 
   const boardId = data.board?.id;
 
@@ -180,7 +183,6 @@ function App() {
     setEditingCard(null); fetchBoard();
   };
 
-  // ── Update card — now also saves due date ─────────────────────────────────
   const updateCard = async () => {
     if (!modalTitle.trim()) return;
     await axios.put(`${API}/cards/${selectedCard.id}/title`, { title: modalTitle.trim(), boardId, userId: user.id });
@@ -189,7 +191,6 @@ function App() {
       priority: modalPriority, status: modalStatus, labels: modalLabels,
       boardId, userId: user.id
     });
-    // ← NEW: save due date
     await axios.put(`${API}/cards/${selectedCard.id}/due-date`, {
       due_date: modalDueDate ? new Date(modalDueDate).toISOString() : null,
       boardId, userId: user.id
@@ -212,7 +213,7 @@ function App() {
     setModalPriority(card.priority || 'medium');
     setModalStatus(card.status || 'todo');
     setModalLabels(card.labels || []);
-    setModalDueDate(toDatetimeLocal(card.due_date));  // ← NEW
+    setModalDueDate(toDatetimeLocal(card.due_date));
     setLabelInput('');
   };
 
@@ -266,9 +267,7 @@ function App() {
           <style>{`@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }`}</style>
 
           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10 }}>
-            {/* ── NEW: Notification bell ── */}
             <NotificationBell userId={user.id} />
-
             <button onClick={() => setShowActivity(true)}
               style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)', color: '#fff', borderRadius: 7, padding: '6px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
               onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.25)'}
@@ -287,17 +286,34 @@ function App() {
           Welcome back, {user.username}! ✨
         </div>
 
+        {/* ── NEW: FilterBar ── */}
+        {!loading && (
+          <FilterBar
+            allCards={data.cards}
+            onFilteredChange={(ids, count, active) => {
+              setMatchedCardIds(ids);
+              setMatchCount(count);
+              setFiltersActive(active);
+            }}
+          />
+        )}
+        {filtersActive && (
+          <div style={{ textAlign: 'center', color: '#fff', fontSize: 12, marginBottom: 8, opacity: 0.85 }}>
+            {matchCount} card{matchCount !== 1 ? 's' : ''} match
+          </div>
+        )}
+
         {/* Lists */}
         {loading ? (
           <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 80, color: '#fff', fontSize: 14 }}>Loading board...</div>
         ) : (
           <DragDropContext onDragEnd={onDragEnd}>
-            <div style={{ display: 'flex', flexWrap: 'nowrap', gap: 14, padding: '14px 24px 32px', alignItems: 'flex-start', overflowX: 'auto', minHeight: 'calc(100vh - 130px)' }}>
+            <div style={{ display: 'flex', flexWrap: 'nowrap', gap: 14, padding: '14px 24px 32px', alignItems: 'flex-start', overflowX: 'auto', minHeight: 'calc(100vh - 170px)' }}>
 
               {data.lists.map(list => {
                 const listCards = data.cards.filter(c => c.list_id === list.id);
                 return (
-                  <div key={list.id} style={{ background: 'rgba(255,255,255,0.94)', borderRadius: 14, width: 280, minWidth: 264, flexShrink: 0, boxShadow: '0 4px 20px rgba(0,0,0,0.18)', display: 'flex', flexDirection: 'column', maxHeight: 'calc(100vh - 170px)', transition: 'box-shadow 0.2s ease' }}
+                  <div key={list.id} style={{ background: 'rgba(255,255,255,0.94)', borderRadius: 14, width: 280, minWidth: 264, flexShrink: 0, boxShadow: '0 4px 20px rgba(0,0,0,0.18)', display: 'flex', flexDirection: 'column', maxHeight: 'calc(100vh - 210px)', transition: 'box-shadow 0.2s ease' }}
                     onMouseEnter={e => e.currentTarget.style.boxShadow = '0 8px 32px rgba(0,0,0,0.26)'}
                     onMouseLeave={e => e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,0,0,0.18)'}
                   >
@@ -338,6 +354,8 @@ function App() {
                             const status = STATUS_CONFIG[card.status] || STATUS_CONFIG.todo;
                             const overdue = isOverdue(card.due_date, card.status);
                             const dueSoon = isDueSoon(card.due_date, card.status);
+                            // ── NEW: dim if filters active and card doesn't match ──
+                            const dimmed = filtersActive && matchedCardIds && !matchedCardIds.has(card.id);
                             return (
                               <Draggable key={card.id} draggableId={card.id.toString()} index={index}>
                                 {(provided, snapshot) => (
@@ -350,11 +368,11 @@ function App() {
                                       cursor: 'grab',
                                       boxShadow: snapshot.isDragging ? '0 10px 28px rgba(0,0,0,0.22)' : isHovered ? '0 4px 14px rgba(0,0,0,0.12)' : '0 1px 3px rgba(0,0,0,0.07)',
                                       transform: snapshot.isDragging ? undefined : isHovered ? 'translateY(-2px)' : 'translateY(0)',
-                                      transition: 'box-shadow 0.2s ease, transform 0.2s ease',
+                                      transition: 'box-shadow 0.2s ease, transform 0.2s ease, opacity 0.2s ease',
+                                      opacity: dimmed ? 0.25 : 1,  // ← NEW
                                       ...provided.draggableProps.style
                                     }}
                                   >
-                                    {/* Priority dot row */}
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
                                       <div style={{ flex: 1 }}>
                                         {editingCard === card.id ? (
@@ -380,7 +398,6 @@ function App() {
                                       <div title={`Priority: ${priority.label}`} style={{ width: 10, height: 10, borderRadius: '50%', background: priority.dot, flexShrink: 0, marginLeft: 8, marginTop: 3 }} />
                                     </div>
 
-                                    {/* ── NEW: Due date badge ── */}
                                     {card.due_date && (
                                       <div style={{
                                         display: 'inline-flex', alignItems: 'center', gap: 4,
@@ -393,7 +410,6 @@ function App() {
                                       </div>
                                     )}
 
-                                    {/* Labels row */}
                                     {card.labels && card.labels.length > 0 && (
                                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 6 }}>
                                         {card.labels.map(label => (
@@ -404,7 +420,6 @@ function App() {
                                       </div>
                                     )}
 
-                                    {/* Bottom row */}
                                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
                                       <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'wrap' }}>
                                         <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 7px', borderRadius: 5, ...tagStyle }}>{tagLabel}</span>
@@ -520,7 +535,6 @@ function App() {
                 </div>
               </div>
 
-              {/* ── NEW: Due date picker ── */}
               <label style={labelStyle}>DUE DATE</label>
               <input
                 type="datetime-local"
