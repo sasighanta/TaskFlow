@@ -569,12 +569,14 @@ function App() {
               <label style={labelStyle}>DESCRIPTION</label>
               <textarea value={modalDesc} onChange={e => setModalDesc(e.target.value)}
                 placeholder="Add a description..." rows={4}
-                style={{ ...inputStyle, resize: 'vertical', marginBottom: 20 }}
+                style={{ ...inputStyle, resize: 'vertical', marginBottom: 16 }}
               />
+
+              {/* ── NEW: Attachments section ── */}
               <label style={labelStyle}>ATTACHMENTS</label>
-<div style={{ marginBottom: 20 }}>
-  <Attachments cardId={selectedCard.id} boardId={boardId} userId={user.id} />
-</div>
+              <div style={{ marginBottom: 20 }}>
+                <Attachments cardId={selectedCard.id} boardId={boardId} userId={user.id} />
+              </div>
 
               <div style={{ display: 'flex', gap: 10 }}>
                 <button onClick={updateCard} style={{ flex: 1, background: '#2563eb', color: '#fff', border: 'none', borderRadius: 8, padding: '10px', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Save</button>
