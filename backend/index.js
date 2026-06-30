@@ -93,4 +93,7 @@ httpServer.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
 
+const attachmentsRoutes = require('./attachments.routes');
+app.use('/api', attachmentsRoutes);
+
 module.exports = { io };
