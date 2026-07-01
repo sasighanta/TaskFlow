@@ -1,6 +1,7 @@
 {
   "dependencies": {
     "react-router-dom": "^7.15.1",
+    "recharts": "^3.9.1",
     "socket.io-client": "^4.8.3"
   }
 }

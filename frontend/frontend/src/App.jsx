@@ -10,6 +10,7 @@ import ActivityFeed from './ActivityFeed';
 import NotificationBell from './NotificationBell';
 import FilterBar from './FilterBar';
 import Attachments from './Attachments';
+import Analytics from './Analytics';
 
 const API = "https://taskflow-production-0940.up.railway.app/api";
 
@@ -47,8 +48,7 @@ function isOverdue(dueDate, status) {
 }
 function isDueSoon(dueDate, status) {
   if (!dueDate || status === 'done') return false;
-  const due = new Date(dueDate);
-  const hoursLeft = (due - new Date()) / (1000 * 60 * 60);
+  const hoursLeft = (new Date(dueDate) - new Date()) / (1000 * 60 * 60);
   return hoursLeft > 0 && hoursLeft < 24;
 }
 function formatDueDate(dueDate) {
@@ -60,7 +60,7 @@ function toDatetimeLocal(isoString) {
   if (!isoString) return '';
   const d = new Date(isoString);
   const pad = n => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
 let tagIndex = 0;
@@ -91,9 +91,8 @@ function App() {
   const [modalDueDate, setModalDueDate] = useState('');
   const [hoveredCard, setHoveredCard] = useState(null);
   const [showActivity, setShowActivity] = useState(false);
-
-  // ── NEW: Filter state ───────────────────────────────────────────────────
-  const [matchedCardIds, setMatchedCardIds] = useState(null); // null = no filter active
+  const [showAnalytics, setShowAnalytics] = useState(false);
+  const [matchedCardIds, setMatchedCardIds] = useState(null);
   const [matchCount, setMatchCount] = useState(0);
   const [filtersActive, setFiltersActive] = useState(false);
 
@@ -113,9 +112,7 @@ function App() {
   useEffect(() => {
     if (!boardId || !showBoard) return;
     socket.emit('join-board', boardId);
-    socket.on('board-updated', ({ type, payload }) => {
-      fetchBoard();
-    });
+    socket.on('board-updated', () => { fetchBoard(); });
     return () => {
       socket.emit('leave-board', boardId);
       socket.off('board-updated');
@@ -189,12 +186,10 @@ function App() {
     await axios.put(`${API}/cards/${selectedCard.id}/title`, { title: modalTitle.trim(), boardId, userId: user.id });
     await axios.put(`${API}/cards/${selectedCard.id}/description`, { description: modalDesc, boardId, userId: user.id });
     await axios.put(`${API}/cards/${selectedCard.id}/meta`, {
-      priority: modalPriority, status: modalStatus, labels: modalLabels,
-      boardId, userId: user.id
+      priority: modalPriority, status: modalStatus, labels: modalLabels, boardId, userId: user.id
     });
     await axios.put(`${API}/cards/${selectedCard.id}/due-date`, {
-      due_date: modalDueDate ? new Date(modalDueDate).toISOString() : null,
-      boardId, userId: user.id
+      due_date: modalDueDate ? new Date(modalDueDate).toISOString() : null, boardId, userId: user.id
     });
     setSelectedCard(null); fetchBoard(); toast.success('Card updated!');
   };
@@ -251,7 +246,7 @@ function App() {
 
       <div style={{ position: 'relative', zIndex: 2 }}>
 
-        {/* Header */}
+        {/* ── Header ── */}
         <div style={{ display: 'flex', alignItems: 'center', padding: '10px 24px', background: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(10px)', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
           <button onClick={() => setShowBoard(false)}
             style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', borderRadius: 7, padding: '5px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', marginRight: 14, display: 'flex', alignItems: 'center', gap: 5 }}
@@ -269,11 +264,19 @@ function App() {
 
           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10 }}>
             <NotificationBell userId={user.id} />
+
+            <button onClick={() => setShowAnalytics(true)}
+              style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)', color: '#fff', borderRadius: 7, padding: '6px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.25)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.15)'}
+            >📊 Analytics</button>
+
             <button onClick={() => setShowActivity(true)}
               style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)', color: '#fff', borderRadius: 7, padding: '6px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
               onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.25)'}
               onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.15)'}
             >📋 Activity</button>
+
             <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'linear-gradient(135deg, #2563eb, #7c3aed)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 13, fontWeight: 700, boxShadow: '0 2px 8px rgba(0,0,0,0.3)', flexShrink: 0 }}>{avatarLetter}</div>
             <button onClick={handleLogout}
               style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)', color: '#fff', borderRadius: 7, padding: '6px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
@@ -287,7 +290,7 @@ function App() {
           Welcome back, {user.username}! ✨
         </div>
 
-        {/* ── NEW: FilterBar ── */}
+        {/* FilterBar */}
         {!loading && (
           <FilterBar
             allCards={data.cards}
@@ -318,7 +321,6 @@ function App() {
                     onMouseEnter={e => e.currentTarget.style.boxShadow = '0 8px 32px rgba(0,0,0,0.26)'}
                     onMouseLeave={e => e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,0,0,0.18)'}
                   >
-                    {/* List Header */}
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 10px 8px', borderBottom: '1px solid #ece9e0', flexShrink: 0 }}>
                       {editingList === list.id ? (
                         <input autoFocus value={editListTitle} onChange={e => setEditListTitle(e.target.value)}
@@ -335,7 +337,6 @@ function App() {
                       </div>
                     </div>
 
-                    {/* Cards */}
                     <Droppable droppableId={list.id.toString()}>
                       {(provided) => (
                         <div ref={provided.innerRef} {...provided.droppableProps}
@@ -355,7 +356,6 @@ function App() {
                             const status = STATUS_CONFIG[card.status] || STATUS_CONFIG.todo;
                             const overdue = isOverdue(card.due_date, card.status);
                             const dueSoon = isDueSoon(card.due_date, card.status);
-                            // ── NEW: dim if filters active and card doesn't match ──
                             const dimmed = filtersActive && matchedCardIds && !matchedCardIds.has(card.id);
                             return (
                               <Draggable key={card.id} draggableId={card.id.toString()} index={index}>
@@ -370,7 +370,7 @@ function App() {
                                       boxShadow: snapshot.isDragging ? '0 10px 28px rgba(0,0,0,0.22)' : isHovered ? '0 4px 14px rgba(0,0,0,0.12)' : '0 1px 3px rgba(0,0,0,0.07)',
                                       transform: snapshot.isDragging ? undefined : isHovered ? 'translateY(-2px)' : 'translateY(0)',
                                       transition: 'box-shadow 0.2s ease, transform 0.2s ease, opacity 0.2s ease',
-                                      opacity: dimmed ? 0.25 : 1,  // ← NEW
+                                      opacity: dimmed ? 0.25 : 1,
                                       ...provided.draggableProps.style
                                     }}
                                   >
@@ -383,10 +383,7 @@ function App() {
                                             style={{ fontSize: 13, fontWeight: 600, color: '#1c1917', border: '1px solid #2563eb', borderRadius: 5, padding: '2px 6px', outline: 'none', width: '100%' }}
                                           />
                                         ) : (
-                                          <div onClick={() => openCardModal(card)}
-                                            style={{ fontSize: 13, fontWeight: 600, color: '#1c1917', lineHeight: 1.4, cursor: 'pointer' }}
-                                            title="Click to edit"
-                                          >
+                                          <div onClick={() => openCardModal(card)} style={{ fontSize: 13, fontWeight: 600, color: '#1c1917', lineHeight: 1.4, cursor: 'pointer' }} title="Click to edit">
                                             {card.title}
                                             {card.description && (
                                               <span style={{ display: 'block', fontSize: 11, color: '#a8a29e', marginTop: 3, fontWeight: 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -400,13 +397,7 @@ function App() {
                                     </div>
 
                                     {card.due_date && (
-                                      <div style={{
-                                        display: 'inline-flex', alignItems: 'center', gap: 4,
-                                        fontSize: 10, fontWeight: 600, padding: '2px 7px', borderRadius: 4,
-                                        marginBottom: 6,
-                                        background: overdue ? '#fee2e2' : dueSoon ? '#fef3c7' : '#f3f4f6',
-                                        color: overdue ? '#dc2626' : dueSoon ? '#d97706' : '#6b7280',
-                                      }}>
+                                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, fontWeight: 600, padding: '2px 7px', borderRadius: 4, marginBottom: 6, background: overdue ? '#fee2e2' : dueSoon ? '#fef3c7' : '#f3f4f6', color: overdue ? '#dc2626' : dueSoon ? '#d97706' : '#6b7280' }}>
                                         {overdue ? '⏰ Overdue' : dueSoon ? '⏳' : '📅'} {formatDueDate(card.due_date)}
                                       </div>
                                     )}
@@ -414,9 +405,7 @@ function App() {
                                     {card.labels && card.labels.length > 0 && (
                                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 6 }}>
                                         {card.labels.map(label => (
-                                          <span key={label} style={{ fontSize: 10, fontWeight: 600, padding: '1px 6px', borderRadius: 4, background: '#f3f4f6', color: '#374151' }}>
-                                            #{label}
-                                          </span>
+                                          <span key={label} style={{ fontSize: 10, fontWeight: 600, padding: '1px 6px', borderRadius: 4, background: '#f3f4f6', color: '#374151' }}>#{label}</span>
                                         ))}
                                       </div>
                                     )}
@@ -425,9 +414,7 @@ function App() {
                                       <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'wrap' }}>
                                         <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 7px', borderRadius: 5, ...tagStyle }}>{tagLabel}</span>
                                         {card.status && card.status !== 'todo' && (
-                                          <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 6px', borderRadius: 4, background: status.bg, color: status.color }}>
-                                            {status.label}
-                                          </span>
+                                          <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 6px', borderRadius: 4, background: status.bg, color: status.color }}>{status.label}</span>
                                         )}
                                       </div>
                                       <TrashButton onClick={() => deleteCard(card.id)} />
@@ -442,7 +429,6 @@ function App() {
                       )}
                     </Droppable>
 
-                    {/* Add Card */}
                     <div style={{ padding: '6px 10px 10px', flexShrink: 0 }}>
                       {addingCard === list.id ? (
                         <>
@@ -471,7 +457,6 @@ function App() {
                 );
               })}
 
-              {/* Add List */}
               <div style={{ width: 264, minWidth: 264, flexShrink: 0, alignSelf: 'flex-start' }}>
                 {showAddList ? (
                   <div style={{ background: 'rgba(255,255,255,0.15)', borderRadius: 14, padding: 12, backdropFilter: 'blur(6px)', border: '1px solid rgba(255,255,255,0.2)' }}>
@@ -537,18 +522,13 @@ function App() {
               </div>
 
               <label style={labelStyle}>DUE DATE</label>
-              <input
-                type="datetime-local"
-                value={modalDueDate}
-                onChange={e => setModalDueDate(e.target.value)}
+              <input type="datetime-local" value={modalDueDate} onChange={e => setModalDueDate(e.target.value)}
                 style={{ ...inputStyle, marginBottom: 16 }}
               />
 
               <label style={labelStyle}>LABELS</label>
               <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
-                <input
-                  value={labelInput}
-                  onChange={e => setLabelInput(e.target.value)}
+                <input value={labelInput} onChange={e => setLabelInput(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addLabel(); } }}
                   placeholder="Type label + Enter (e.g. frontend)"
                   style={{ ...inputStyle, flex: 1, marginBottom: 0 }}
@@ -572,7 +552,6 @@ function App() {
                 style={{ ...inputStyle, resize: 'vertical', marginBottom: 16 }}
               />
 
-              {/* ── NEW: Attachments section ── */}
               <label style={labelStyle}>ATTACHMENTS</label>
               <div style={{ marginBottom: 20 }}>
                 <Attachments cardId={selectedCard.id} boardId={boardId} userId={user.id} />
@@ -588,23 +567,16 @@ function App() {
       </div>
 
       <ActivityFeed boardId={boardId} isOpen={showActivity} onClose={() => setShowActivity(false)} socket={socket} />
+
+      {showAnalytics && (
+        <Analytics boardId={boardId} onClose={() => setShowAnalytics(false)} />
+      )}
     </div>
   );
 }
 
-const labelStyle = {
-  fontSize: 11, fontWeight: 700, color: '#9ca3af',
-  display: 'block', marginBottom: 6, letterSpacing: '0.05em'
-};
-const inputStyle = {
-  width: '100%', border: '1px solid #e5e7eb', borderRadius: 8,
-  padding: '10px 12px', fontSize: 13, fontFamily: 'inherit',
-  color: '#1c1917', outline: 'none', boxSizing: 'border-box',
-};
-const selectStyle = {
-  width: '100%', border: '1px solid #e5e7eb', borderRadius: 8,
-  padding: '9px 12px', fontSize: 13, fontFamily: 'inherit',
-  color: '#1c1917', outline: 'none', background: '#fff', cursor: 'pointer',
-};
+const labelStyle = { fontSize: 11, fontWeight: 700, color: '#9ca3af', display: 'block', marginBottom: 6, letterSpacing: '0.05em' };
+const inputStyle = { width: '100%', border: '1px solid #e5e7eb', borderRadius: 8, padding: '10px 12px', fontSize: 13, fontFamily: 'inherit', color: '#1c1917', outline: 'none', boxSizing: 'border-box' };
+const selectStyle = { width: '100%', border: '1px solid #e5e7eb', borderRadius: 8, padding: '9px 12px', fontSize: 13, fontFamily: 'inherit', color: '#1c1917', outline: 'none', background: '#fff', cursor: 'pointer' };
 
 export default App;

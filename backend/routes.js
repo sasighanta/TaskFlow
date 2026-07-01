@@ -367,4 +367,87 @@ router.get('/boards/:boardId/search', async (req, res) => {
   }
 });
 
+
+// ══════════════════════════════════════════════════════════════════════════
+// ADD TO backend/routes.js — paste before module.exports
+// ══════════════════════════════════════════════════════════════════════════
+
+/* ✅ ANALYTICS FOR A BOARD */
+router.get('/boards/:boardId/analytics', async (req, res) => {
+  const { boardId } = req.params;
+  try {
+    // 1. Cards by status
+    const statusResult = await pool.query(`
+      SELECT status, COUNT(*) as count
+      FROM cards c
+      JOIN lists l ON c.list_id = l.id
+      WHERE l.board_id = $1
+      GROUP BY status
+    `, [boardId]);
+
+    // 2. Cards by priority
+    const priorityResult = await pool.query(`
+      SELECT priority, COUNT(*) as count
+      FROM cards c
+      JOIN lists l ON c.list_id = l.id
+      WHERE l.board_id = $1
+      GROUP BY priority
+    `, [boardId]);
+
+    // 3. Weekly activity (last 6 weeks)
+    const weeklyResult = await pool.query(`
+      SELECT
+        TO_CHAR(DATE_TRUNC('week', created_at), 'Mon DD') as week,
+        COUNT(*) as created
+      FROM activity_logs
+      WHERE board_id = $1
+        AND created_at > NOW() - interval '6 weeks'
+      GROUP BY DATE_TRUNC('week', created_at)
+      ORDER BY DATE_TRUNC('week', created_at)
+    `, [boardId]);
+
+    // 4. Cards per list
+    const listsResult = await pool.query(`
+      SELECT l.title, COUNT(c.id) as count
+      FROM lists l
+      LEFT JOIN cards c ON c.list_id = l.id
+      WHERE l.board_id = $1
+      GROUP BY l.id, l.title
+      ORDER BY l.position
+    `, [boardId]);
+
+    // 5. Summary stats
+    const statsResult = await pool.query(`
+      SELECT
+        COUNT(*) as total_cards,
+        COUNT(*) FILTER (WHERE c.status = 'done') as completed,
+        COUNT(*) FILTER (WHERE c.due_date < NOW() AND c.status != 'done') as overdue,
+        COUNT(*) FILTER (WHERE c.priority = 'critical') as critical
+      FROM cards c
+      JOIN lists l ON c.list_id = l.id
+      WHERE l.board_id = $1
+    `, [boardId]);
+
+    const stats = statsResult.rows[0];
+    const total = parseInt(stats.total_cards) || 1;
+
+    res.json({
+      statusBreakdown: statusResult.rows,
+      priorityBreakdown: priorityResult.rows,
+      weeklyActivity: weeklyResult.rows,
+      cardsPerList: listsResult.rows,
+      summary: {
+        totalCards: parseInt(stats.total_cards),
+        completed: parseInt(stats.completed),
+        overdue: parseInt(stats.overdue),
+        critical: parseInt(stats.critical),
+        completionRate: Math.round((parseInt(stats.completed) / total) * 100),
+      }
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;
