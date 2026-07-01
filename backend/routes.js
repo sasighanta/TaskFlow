@@ -455,42 +455,15 @@ router.get('/boards/:boardId/analytics', async (req, res) => {
 // ══════════════════════════════════════════════════════════════════════════
 
 /* ✅ AI CARD SUMMARIZER */
-router.post('/cards/:cardId/summarize', async (req, res) => {
-  const { cardId } = req.params;
-
-  try {
-    // Get card details
-    const cardResult = await pool.query(
-      'SELECT * FROM cards WHERE id=$1', [cardId]
-    );
-    if (cardResult.rows.length === 0) return res.status(404).json({ error: 'Card not found' });
-    const card = cardResult.rows[0];
-
-    // Get recent activity for this card
-    const activityResult = await pool.query(
-      `SELECT action, created_at FROM activity_logs
-       WHERE entity_id=$1 AND entity_type='card'
-       ORDER BY created_at DESC LIMIT 5`,
-      [cardId]
-    );
-    const activityText = activityResult.rows
-      .map(a => `- ${a.action}`)
-      .join('\n') || 'No recent activity';
-
-    // Call Anthropic API
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': process.env.ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 150,
-        messages: [{
-          role: 'user',
-          content: `Summarize this task card in exactly 2 short sentences. Be direct and practical.
+const response = await fetch(
+  `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
+  {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{
+        parts: [{
+          text: `Summarize this task card in exactly 2 short sentences. Be direct and practical.
 
 Card title: ${card.title}
 Status: ${card.status || 'todo'}
@@ -498,27 +471,16 @@ Priority: ${card.priority || 'medium'}
 Description: ${card.description || 'No description'}
 Due date: ${card.due_date ? new Date(card.due_date).toLocaleDateString() : 'Not set'}
 Labels: ${(card.labels || []).join(', ') || 'None'}
-Recent activity:
-${activityText}
 
 Write 2 sentences: first summarize what this task is about, second describe its current state and what needs to happen next.`
         }]
-      })
-    });
-
-    const data = await response.json();
-
-    if (data.error) {
-      console.error('Anthropic error:', data.error);
-      return res.status(500).json({ error: data.error.message });
-    }
-
-    const summary = data.content[0].text;
-    res.json({ summary });
-  } catch (err) {
-    console.error('Summarize error:', err);
-    res.status(500).json({ error: err.message });
+      }]
+    })
   }
-});
+);
+
+const data = await response.json();
+const summary = data.candidates[0].content.parts[0].text;
+res.json({ summary });
 
 module.exports = router;
