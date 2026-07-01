@@ -92,6 +92,8 @@ function App() {
   const [hoveredCard, setHoveredCard] = useState(null);
   const [showActivity, setShowActivity] = useState(false);
   const [showAnalytics, setShowAnalytics] = useState(false);
+  const [aiSummary, setAiSummary] = useState('');
+  const [aiLoading, setAiLoading] = useState(false);
   const [matchedCardIds, setMatchedCardIds] = useState(null);
   const [matchCount, setMatchCount] = useState(0);
   const [filtersActive, setFiltersActive] = useState(false);
@@ -211,6 +213,22 @@ function App() {
     setModalLabels(card.labels || []);
     setModalDueDate(toDatetimeLocal(card.due_date));
     setLabelInput('');
+    setAiSummary(''); // clear previous summary
+  };
+
+  // ── AI Summarizer ─────────────────────────────────────────────────────────
+  const summarizeCard = async () => {
+    if (!selectedCard) return;
+    setAiLoading(true);
+    setAiSummary('');
+    try {
+      const res = await axios.post(`${API}/cards/${selectedCard.id}/summarize`);
+      setAiSummary(res.data.summary);
+    } catch (err) {
+      setAiSummary('Failed to generate summary. Try again.');
+    } finally {
+      setAiLoading(false);
+    }
   };
 
   const addLabel = () => {
@@ -497,8 +515,39 @@ function App() {
 
               <label style={labelStyle}>TITLE</label>
               <input value={modalTitle} onChange={e => setModalTitle(e.target.value)}
-                style={{ ...inputStyle, marginBottom: 16, fontSize: 15, fontWeight: 600 }}
+                style={{ ...inputStyle, marginBottom: 12, fontSize: 15, fontWeight: 600 }}
               />
+
+              {/* ── AI Summarizer ── */}
+              <div style={{ marginBottom: 16 }}>
+                <button
+                  onClick={summarizeCard}
+                  disabled={aiLoading}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 6,
+                    padding: '7px 14px', borderRadius: 8,
+                    border: '1px solid #e5e7eb',
+                    background: aiLoading ? '#f3f4f6' : '#faf5ff',
+                    color: aiLoading ? '#9ca3af' : '#7c3aed',
+                    fontSize: 12, fontWeight: 600, cursor: aiLoading ? 'not-allowed' : 'pointer',
+                    fontFamily: 'inherit', transition: 'all 0.15s ease',
+                  }}
+                  onMouseEnter={e => { if (!aiLoading) e.currentTarget.style.background = '#ede9fe'; }}
+                  onMouseLeave={e => { if (!aiLoading) e.currentTarget.style.background = '#faf5ff'; }}
+                >
+                  {aiLoading ? '✨ Summarizing...' : '✨ AI Summary'}
+                </button>
+                {aiSummary && (
+                  <div style={{
+                    marginTop: 8, padding: '10px 14px', borderRadius: 8,
+                    background: '#faf5ff', borderLeft: '3px solid #7c3aed',
+                    border: '1px solid #ede9fe',
+                    fontSize: 12, color: '#4c1d95', lineHeight: 1.6, fontStyle: 'italic',
+                  }}>
+                    {aiSummary}
+                  </div>
+                )}
+              </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
                 <div>
