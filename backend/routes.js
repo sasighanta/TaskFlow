@@ -2,14 +2,10 @@ const express = require('express');
 const router = express.Router();
 const pool = require('./db');
 
-// ══════════════════════════════════════════════════════════════════════════
-// ACTIVITY LOG HELPER
-// ══════════════════════════════════════════════════════════════════════════
 async function logActivity(boardId, userId, action, entityType, entityId, entityTitle, metadata = {}) {
   try {
     await pool.query(
-      `INSERT INTO activity_logs
-       (board_id, user_id, action, entity_type, entity_id, entity_title, metadata)
+      `INSERT INTO activity_logs (board_id, user_id, action, entity_type, entity_id, entity_title, metadata)
        VALUES ($1, $2, $3, $4, $5, $6, $7)`,
       [boardId, userId, action, entityType, entityId, entityTitle, JSON.stringify(metadata)]
     );
@@ -18,23 +14,81 @@ async function logActivity(boardId, userId, action, entityType, entityId, entity
   }
 }
 
-/* ✅ GET BOARD BY USER ID */
-router.get('/user/:userId/board', async (req, res) => {
+router.get('/user/:userId/boards', async (req, res) => {
   try {
     const { userId } = req.params;
-    const board = await pool.query('SELECT * FROM boards WHERE user_id=$1 LIMIT 1', [userId]);
-    if (board.rows.length === 0) return res.status(404).json({ error: "No board found" });
-    const boardId = board.rows[0].id;
-    const lists = await pool.query('SELECT * FROM lists WHERE board_id=$1 ORDER BY position', [boardId]);
-    const cards = await pool.query('SELECT * FROM cards WHERE list_id IN (SELECT id FROM lists WHERE board_id=$1) ORDER BY position', [boardId]);
-    res.json({ board: board.rows[0], lists: lists.rows, cards: cards.rows });
+
+    const result = await pool.query(
+      `
+      SELECT
+        b.id,
+        b.title,
+        b.created_at,
+        COUNT(DISTINCT l.id) AS list_count,
+        COUNT(DISTINCT c.id) AS card_count
+      FROM boards b
+      LEFT JOIN lists l
+        ON l.board_id = b.id
+      LEFT JOIN cards c
+        ON c.list_id = l.id
+      WHERE b.user_id = $1
+      GROUP BY b.id
+      ORDER BY b.created_at DESC;
+      `,
+      [userId]
+    );
+
+    res.json(result.rows);
   } catch (err) {
-    console.error("DATABASE ERROR:", err.message);
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({
+      error: "Failed to fetch boards",
+    });
   }
 });
 
-/* ✅ GET BOARD */
+router.post('/boards', async (req, res) => {
+  try {
+    const { title, userId } = req.body;
+
+    if (!title || !title.trim()) {
+      return res.status(400).json({
+        error: "Board title is required",
+      });
+    }
+
+    // Create board
+    const boardResult = await pool.query(
+      `INSERT INTO boards(title, user_id)
+       VALUES($1,$2)
+       RETURNING *`,
+      [title.trim(), userId]
+    );
+
+    const board = boardResult.rows[0];
+
+    // Create default lists
+    await pool.query(
+      `
+      INSERT INTO lists(title, board_id, position)
+      VALUES
+      ('To Do',$1,1),
+      ('In Progress',$1,2),
+      ('Done',$1,3)
+      `,
+      [board.id]
+    );
+
+    res.status(201).json(board);
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      error: "Failed to create board",
+    });
+  }
+});
+
 router.get('/board/:id', async (req, res) => {
   try {
     const boardId = req.params.id;
@@ -42,33 +96,58 @@ router.get('/board/:id', async (req, res) => {
     const cards = await pool.query('SELECT * FROM cards WHERE list_id IN (SELECT id FROM lists WHERE board_id=$1) ORDER BY position', [boardId]);
     res.json({ lists: lists.rows, cards: cards.rows });
   } catch (err) {
-    console.error("DATABASE ERROR:", err.message);
     res.status(500).json({ error: err.message });
   }
 });
 
-/* ✅ GET ACTIVITY LOG */
+router.delete('/boards/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const exists = await pool.query(
+      "SELECT * FROM boards WHERE id=$1",
+      [id]
+    );
+
+    if (exists.rows.length === 0) {
+      return res.status(404).json({
+        error: "Board not found",
+      });
+    }
+
+    await pool.query(
+      "DELETE FROM boards WHERE id=$1",
+      [id]
+    );
+
+    res.json({
+      message: "Board deleted successfully",
+    });
+
+  } catch (err) {
+    console.error(err);
+
+    res.status(500).json({
+      error: "Failed to delete board",
+    });
+  }
+});
+
 router.get('/boards/:boardId/activity', async (req, res) => {
   const { boardId } = req.params;
   try {
     const result = await pool.query(
-      `SELECT al.id, al.action, al.entity_type, al.entity_title,
-              al.metadata, al.created_at, u.username, u.id as user_id
-       FROM activity_logs al
-       JOIN users u ON u.id = al.user_id
-       WHERE al.board_id = $1
-       ORDER BY al.created_at DESC
-       LIMIT 50`,
+      `SELECT al.id, al.action, al.entity_type, al.entity_title, al.metadata, al.created_at, u.username, u.id as user_id
+       FROM activity_logs al JOIN users u ON u.id = al.user_id
+       WHERE al.board_id = $1 ORDER BY al.created_at DESC LIMIT 50`,
       [boardId]
     );
     res.json(result.rows);
   } catch (err) {
-    console.error(err);
     res.status(500).json({ error: err.message });
   }
 });
 
-/* ✅ REORDER CARDS */
 router.put('/cards/reorder', async (req, res) => {
   const { cards, boardId, userId, movedCard, fromList, toList } = req.body;
   try {
@@ -92,12 +171,10 @@ router.put('/cards/reorder', async (req, res) => {
     }
     res.send("Reordered correctly");
   } catch (err) {
-    console.error(err);
     res.status(500).send("Error");
   }
 });
 
-/* ✅ CREATE LIST */
 router.post('/lists', async (req, res) => {
   try {
     const { title, board_id, userId } = req.body;
@@ -108,12 +185,10 @@ router.post('/lists', async (req, res) => {
     io.to(`board:${board_id}`).emit('board-updated', { type: 'list-created', payload: { list: newList } });
     res.json(newList);
   } catch (err) {
-    console.error(err);
     res.status(500).send("Error");
   }
 });
 
-/* ✅ CREATE CARD */
 router.post('/cards', async (req, res) => {
   try {
     const { title, list_id, tag, tag_label, boardId, userId } = req.body;
@@ -126,12 +201,10 @@ router.post('/cards', async (req, res) => {
     }
     res.json(newCard);
   } catch (err) {
-    console.error(err);
     res.status(500).send("Error");
   }
 });
 
-/* ✅ MOVE CARD */
 router.put('/cards/:id', async (req, res) => {
   const { id } = req.params;
   const { list_id, position, boardId, userId } = req.body;
@@ -146,12 +219,10 @@ router.put('/cards/:id', async (req, res) => {
     }
     res.json(updatedCard);
   } catch (err) {
-    console.error(err);
     res.status(500).send("Error");
   }
 });
 
-/* ✅ UPDATE CARD TITLE */
 router.put('/cards/:id/title', async (req, res) => {
   const { id } = req.params;
   const { title, boardId, userId } = req.body;
@@ -165,12 +236,10 @@ router.put('/cards/:id/title', async (req, res) => {
     }
     res.json(updatedCard);
   } catch (err) {
-    console.error(err);
     res.status(500).send("Error");
   }
 });
 
-/* ✅ UPDATE CARD DESCRIPTION */
 router.put('/cards/:id/description', async (req, res) => {
   const { id } = req.params;
   const { description, boardId, userId } = req.body;
@@ -184,12 +253,10 @@ router.put('/cards/:id/description', async (req, res) => {
     }
     res.json(updatedCard);
   } catch (err) {
-    console.error(err);
     res.status(500).send("Error");
   }
 });
 
-/* ✅ UPDATE LIST TITLE */
 router.put('/lists/:id', async (req, res) => {
   const { id } = req.params;
   const { title, boardId, userId } = req.body;
@@ -203,12 +270,10 @@ router.put('/lists/:id', async (req, res) => {
     }
     res.json(updatedList);
   } catch (err) {
-    console.error(err);
     res.status(500).send("Error");
   }
 });
 
-/* ✅ DELETE CARD */
 router.delete('/cards/:id', async (req, res) => {
   const { id } = req.params;
   const { boardId, userId } = req.body;
@@ -223,7 +288,6 @@ router.delete('/cards/:id', async (req, res) => {
   res.send("Deleted");
 });
 
-/* ✅ DELETE LIST */
 router.delete('/lists/:id', async (req, res) => {
   const { id } = req.params;
   const { boardId, userId } = req.body;
@@ -238,7 +302,7 @@ router.delete('/lists/:id', async (req, res) => {
   }
   res.send("Deleted");
 });
-/* ✅ UPDATE CARD META (priority, status, labels) */
+
 router.put('/cards/:id/meta', async (req, res) => {
   const { id } = req.params;
   const { priority, status, labels, boardId, userId } = req.body;
@@ -251,13 +315,10 @@ router.put('/cards/:id/meta', async (req, res) => {
     await logActivity(boardId, userId, 'updated card details', 'card', id, updatedCard.title);
     if (boardId) {
       const io = req.app.get('io');
-      io.to(`board:${boardId}`).emit('board-updated', {
-        type: 'card-updated', payload: { card: updatedCard }
-      });
+      io.to(`board:${boardId}`).emit('board-updated', { type: 'card-updated', payload: { card: updatedCard } });
     }
     res.json(updatedCard);
   } catch (err) {
-    console.error(err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -266,36 +327,26 @@ router.put('/cards/:id/due-date', async (req, res) => {
   const { id } = req.params;
   const { due_date, boardId, userId } = req.body;
   try {
-    const result = await pool.query(
-      'UPDATE cards SET due_date=$1 WHERE id=$2 RETURNING *',
-      [due_date, id]
-    );
+    const result = await pool.query('UPDATE cards SET due_date=$1 WHERE id=$2 RETURNING *', [due_date, id]);
     const updatedCard = result.rows[0];
     await logActivity(boardId, userId, 'set due date', 'card', id, updatedCard.title);
     if (boardId) {
       const io = req.app.get('io');
-      io.to(`board:${boardId}`).emit('board-updated', {
-        type: 'card-updated', payload: { card: updatedCard }
-      });
+      io.to(`board:${boardId}`).emit('board-updated', { type: 'card-updated', payload: { card: updatedCard } });
     }
     res.json(updatedCard);
   } catch (err) {
-    console.error(err);
     res.status(500).json({ error: err.message });
   }
 });
 
-/* ✅ GET NOTIFICATIONS FOR LOGGED IN USER */
 router.get('/notifications/:userId', async (req, res) => {
   const { userId } = req.params;
   try {
     const result = await pool.query(
-      `SELECT n.*, c.title as card_title
-       FROM notifications n
+      `SELECT n.*, c.title as card_title FROM notifications n
        LEFT JOIN cards c ON n.card_id = c.id
-       WHERE n.user_id = $1
-       ORDER BY n.created_at DESC
-       LIMIT 30`,
+       WHERE n.user_id = $1 ORDER BY n.created_at DESC LIMIT 30`,
       [userId]
     );
     res.json(result.rows);
@@ -304,133 +355,62 @@ router.get('/notifications/:userId', async (req, res) => {
   }
 });
 
-/* ✅ MARK ALL NOTIFICATIONS AS READ */
 router.put('/notifications/:userId/read-all', async (req, res) => {
   const { userId } = req.params;
   try {
-    await pool.query(
-      'UPDATE notifications SET is_read=true WHERE user_id=$1 AND is_read=false',
-      [userId]
-    );
+    await pool.query('UPDATE notifications SET is_read=true WHERE user_id=$1 AND is_read=false', [userId]);
     res.json({ message: 'All marked as read' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// ══════════════════════════════════════════════════════════════════════════
-// ADD TO backend/routes.js — paste before module.exports
-// ══════════════════════════════════════════════════════════════════════════
-
-/* ✅ SEARCH + FILTER CARDS */
 router.get('/boards/:boardId/search', async (req, res) => {
   const { boardId } = req.params;
   const { q, priority, status, label, overdue } = req.query;
-
   try {
     let conditions = ['l.board_id = $1'];
     let params = [boardId];
-
-    if (q) {
-      params.push(`%${q}%`);
-      conditions.push(`(c.title ILIKE $${params.length} OR c.description ILIKE $${params.length})`);
-    }
-    if (priority) {
-      params.push(priority);
-      conditions.push(`c.priority = $${params.length}`);
-    }
-    if (status) {
-      params.push(status);
-      conditions.push(`c.status = $${params.length}`);
-    }
-    if (label) {
-      params.push(label);
-      conditions.push(`$${params.length} = ANY(c.labels)`);
-    }
-    if (overdue === 'true') {
-      conditions.push(`c.due_date < NOW() AND c.status != 'done'`);
-    }
-
-    const query = `
-      SELECT c.*, l.title as list_title
-      FROM cards c
-      JOIN lists l ON c.list_id = l.id
-      WHERE ${conditions.join(' AND ')}
-      ORDER BY c.position
-    `;
-
-    const result = await pool.query(query, params);
+    if (q) { params.push(`%${q}%`); conditions.push(`(c.title ILIKE $${params.length} OR c.description ILIKE $${params.length})`); }
+    if (priority) { params.push(priority); conditions.push(`c.priority = $${params.length}`); }
+    if (status) { params.push(status); conditions.push(`c.status = $${params.length}`); }
+    if (label) { params.push(label); conditions.push(`$${params.length} = ANY(c.labels)`); }
+    if (overdue === 'true') { conditions.push(`c.due_date < NOW() AND c.status != 'done'`); }
+    const result = await pool.query(
+      `SELECT c.*, l.title as list_title FROM cards c JOIN lists l ON c.list_id = l.id WHERE ${conditions.join(' AND ')} ORDER BY c.position`,
+      params
+    );
     res.json(result.rows);
   } catch (err) {
-    console.error(err);
     res.status(500).json({ error: err.message });
   }
 });
 
-
-// ══════════════════════════════════════════════════════════════════════════
-// ADD TO backend/routes.js — paste before module.exports
-// ══════════════════════════════════════════════════════════════════════════
-
-/* ✅ ANALYTICS FOR A BOARD */
 router.get('/boards/:boardId/analytics', async (req, res) => {
   const { boardId } = req.params;
   try {
-    // 1. Cards by status
-    const statusResult = await pool.query(`
-      SELECT status, COUNT(*) as count
-      FROM cards c
-      JOIN lists l ON c.list_id = l.id
-      WHERE l.board_id = $1
-      GROUP BY status
-    `, [boardId]);
-
-    // 2. Cards by priority
-    const priorityResult = await pool.query(`
-      SELECT priority, COUNT(*) as count
-      FROM cards c
-      JOIN lists l ON c.list_id = l.id
-      WHERE l.board_id = $1
-      GROUP BY priority
-    `, [boardId]);
-
-    // 3. Weekly activity (last 6 weeks)
-    const weeklyResult = await pool.query(`
-      SELECT
-        TO_CHAR(DATE_TRUNC('week', created_at), 'Mon DD') as week,
-        COUNT(*) as created
-      FROM activity_logs
-      WHERE board_id = $1
-        AND created_at > NOW() - interval '6 weeks'
-      GROUP BY DATE_TRUNC('week', created_at)
-      ORDER BY DATE_TRUNC('week', created_at)
-    `, [boardId]);
-
-    // 4. Cards per list
-    const listsResult = await pool.query(`
-      SELECT l.title, COUNT(c.id) as count
-      FROM lists l
-      LEFT JOIN cards c ON c.list_id = l.id
-      WHERE l.board_id = $1
-      GROUP BY l.id, l.title
-      ORDER BY l.position
-    `, [boardId]);
-
-    // 5. Summary stats
-    const statsResult = await pool.query(`
-      SELECT
-        COUNT(*) as total_cards,
-        COUNT(*) FILTER (WHERE c.status = 'done') as completed,
-        COUNT(*) FILTER (WHERE c.due_date < NOW() AND c.status != 'done') as overdue,
-        COUNT(*) FILTER (WHERE c.priority = 'critical') as critical
-      FROM cards c
-      JOIN lists l ON c.list_id = l.id
-      WHERE l.board_id = $1
-    `, [boardId]);
-
+    const statusResult = await pool.query(`SELECT status, COUNT(*) as count FROM cards c JOIN lists l ON c.list_id = l.id WHERE l.board_id = $1 GROUP BY status`, [boardId]);
+    const priorityResult = await pool.query(`SELECT priority, COUNT(*) as count FROM cards c JOIN lists l ON c.list_id = l.id WHERE l.board_id = $1 GROUP BY priority`, [boardId]);
+    const weeklyResult = await pool.query(
+      `SELECT TO_CHAR(DATE_TRUNC('week', created_at), 'Mon DD') as week, COUNT(*) as created
+       FROM activity_logs WHERE board_id = $1 AND created_at > NOW() - interval '6 weeks'
+       GROUP BY DATE_TRUNC('week', created_at) ORDER BY DATE_TRUNC('week', created_at)`,
+      [boardId]
+    );
+    const listsResult = await pool.query(
+      `SELECT l.title, COUNT(c.id) as count FROM lists l LEFT JOIN cards c ON c.list_id = l.id WHERE l.board_id = $1 GROUP BY l.id, l.title ORDER BY l.position`,
+      [boardId]
+    );
+    const statsResult = await pool.query(
+      `SELECT COUNT(*) as total_cards,
+              COUNT(*) FILTER (WHERE c.status = 'done') as completed,
+              COUNT(*) FILTER (WHERE c.due_date < NOW() AND c.status != 'done') as overdue,
+              COUNT(*) FILTER (WHERE c.priority = 'critical') as critical
+       FROM cards c JOIN lists l ON c.list_id = l.id WHERE l.board_id = $1`,
+      [boardId]
+    );
     const stats = statsResult.rows[0];
     const total = parseInt(stats.total_cards) || 1;
-
     res.json({
       statusBreakdown: statusResult.rows,
       priorityBreakdown: priorityResult.rows,
@@ -445,42 +425,10 @@ router.get('/boards/:boardId/analytics', async (req, res) => {
       }
     });
   } catch (err) {
-    console.error(err);
     res.status(500).json({ error: err.message });
   }
 });
 
-// ══════════════════════════════════════════════════════════════════════════
-// ADD TO backend/routes.js — paste before module.exports
-// ══════════════════════════════════════════════════════════════════════════
 
-/* ✅ AI CARD SUMMARIZER */
-const response = await fetch(
-  `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
-  {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: [{
-        parts: [{
-          text: `Summarize this task card in exactly 2 short sentences. Be direct and practical.
-
-Card title: ${card.title}
-Status: ${card.status || 'todo'}
-Priority: ${card.priority || 'medium'}
-Description: ${card.description || 'No description'}
-Due date: ${card.due_date ? new Date(card.due_date).toLocaleDateString() : 'Not set'}
-Labels: ${(card.labels || []).join(', ') || 'None'}
-
-Write 2 sentences: first summarize what this task is about, second describe its current state and what needs to happen next.`
-        }]
-      }]
-    })
-  }
-);
-
-const data = await response.json();
-const summary = data.candidates[0].content.parts[0].text;
-res.json({ summary });
 
 module.exports = router;
