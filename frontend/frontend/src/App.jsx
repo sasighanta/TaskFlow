@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
-import Auth from './Auth';
-import Dashboard from './Dashboard';
+import Dashboard from './pages/Dashboard';
+import Auth from './pages/Auth';
 import toast, { Toaster } from 'react-hot-toast';
 import { TrashButton, EditableTitle } from './components';
 import socket from './socket';
@@ -70,7 +70,7 @@ function App() {
     const stored = localStorage.getItem('user');
     return stored ? JSON.parse(stored) : null;
   });
-  const [showBoard, setShowBoard] = useState(false);
+  const [selectedBoard, setSelectedBoard] = useState(null);
   const [data, setData] = useState({ lists: [], cards: [] });
   const [newList, setNewList] = useState("");
   const [showAddList, setShowAddList] = useState(false);
@@ -96,32 +96,39 @@ function App() {
   const [matchCount, setMatchCount] = useState(0);
   const [filtersActive, setFiltersActive] = useState(false);
 
-  const boardId = data.board?.id;
+  const boardId = selectedBoard?.id;
 
   const fetchBoard = async () => {
-    try {
-      const res = await axios.get(`${API}/user/${user.id}/board`);
-      setData(res.data);
-    } catch (err) {
-      console.error("Failed to fetch board", err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  if (!selectedBoard) return;
+
+  try {
+    const res = await axios.get(
+      `${API}/board/${selectedBoard.id}`
+    );
+
+    setData(res.data);
+  } catch (err) {
+    console.error(err);
+  } finally {
+    setLoading(false);
+  }
+};
 
   useEffect(() => {
-    if (!boardId || !showBoard) return;
+    if (!boardId || !selectedBoard) return;
     socket.emit('join-board', boardId);
     socket.on('board-updated', () => { fetchBoard(); });
     return () => {
       socket.emit('leave-board', boardId);
       socket.off('board-updated');
     };
-  }, [boardId, showBoard]);
+  }, [boardId, selectedBoard]);
 
   useEffect(() => {
-    if (user && showBoard) fetchBoard();
-  }, [user, showBoard]);
+  if (user && selectedBoard) {
+    fetchBoard();
+  }
+}, [user, selectedBoard]);
 
   const onDragEnd = async (result) => {
     if (!result.destination) return;
@@ -225,14 +232,14 @@ function App() {
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    setUser(null); setShowBoard(false);
+    setUser(null); setSelectedBoard(null);
   };
 
   if (!user) return <Auth onLogin={(u) => setUser(u)} />;
-  if (!showBoard) return (
+  if (!selectedBoard) return (
     <>
       <Toaster position="bottom-right" toastOptions={{ style: { fontFamily: "'Segoe UI', sans-serif", fontSize: 13, fontWeight: 600 } }} />
-      <Dashboard user={user} onOpenBoard={() => setShowBoard(true)} onLogout={handleLogout} />
+      <Dashboard user={user} onOpenBoard={(board) => setSelectedBoard(board)} onLogout={handleLogout} />
     </>
   );
 
@@ -249,7 +256,7 @@ function App() {
 
         {/* ── Header ── */}
         <div style={{ display: 'flex', alignItems: 'center', padding: '10px 24px', background: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(10px)', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-          <button onClick={() => setShowBoard(false)}
+          <button onClick={() => setSelectedBoard(null)}
             style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', borderRadius: 7, padding: '5px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', marginRight: 14, display: 'flex', alignItems: 'center', gap: 5 }}
             onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'}
             onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}

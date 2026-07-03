@@ -1,7 +1,6 @@
 import { useState } from 'react';
-import axios from 'axios';
+import API from "../services/api";
 
-const API = "https://trello-backend-i0lq.onrender.com/api";
 
 function Auth({ onLogin }) {
   const [isLogin, setIsLogin] = useState(true);
@@ -19,7 +18,7 @@ const [showPassword, setShowPassword] = useState(false);
         ? { email: form.email, password: form.password }
         : { username: form.username, email: form.email, password: form.password };
 
-      const res = await axios.post(`${API}${endpoint}`, payload);
+     const res = await API.post(endpoint, payload);
      if (isLogin) {
   localStorage.setItem('token', res.data.token);
   localStorage.setItem('user', JSON.stringify(res.data.user));

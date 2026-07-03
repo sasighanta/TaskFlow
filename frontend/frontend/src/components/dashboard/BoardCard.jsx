@@ -1,97 +1,116 @@
-function BoardCard({ title, taskCount, onOpen }) {
+import { useState } from "react";
+
+function BoardCard({
+  board,
+  onOpen,
+  onDelete,
+  onRename,
+}) {
+  const [hovered, setHovered] = useState(false);
+
   return (
     <div
-      onClick={onOpen}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
       style={{
         width: 260,
-        height: 170,
-        borderRadius: 20,
-        padding: 22,
+        height: 165,
+        borderRadius: 18,
+        padding: 20,
         cursor: "pointer",
-        background: "linear-gradient(135deg,#2563eb,#4f46e5)",
-        color: "#fff",
-        position: "relative",
-        overflow: "hidden",
-        transition: "0.25s ease",
-        boxShadow: "0 12px 30px rgba(37,99,235,0.35)",
+        background: hovered
+          ? "linear-gradient(135deg,#2563eb,#7c3aed)"
+          : "rgba(255,255,255,0.08)",
+        backdropFilter: "blur(14px)",
+        border: "1px solid rgba(255,255,255,0.08)",
+        transition: "0.25s",
         display: "flex",
         flexDirection: "column",
         justifyContent: "space-between",
       }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.transform = "translateY(-8px) scale(1.02)";
-        e.currentTarget.style.boxShadow =
-          "0 22px 45px rgba(37,99,235,0.45)";
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.transform = "translateY(0) scale(1)";
-        e.currentTarget.style.boxShadow =
-          "0 12px 30px rgba(37,99,235,0.35)";
-      }}
     >
-      {/* Background circles */}
-      <div
-        style={{
-          position: "absolute",
-          width: 120,
-          height: 120,
-          borderRadius: "50%",
-          background: "rgba(255,255,255,0.08)",
-          top: -30,
-          right: -30,
-        }}
-      />
-
-      <div
-        style={{
-          position: "absolute",
-          width: 160,
-          height: 160,
-          borderRadius: "50%",
-          background: "rgba(255,255,255,0.05)",
-          bottom: -80,
-          right: -60,
-        }}
-      />
-
-      <div style={{ zIndex: 2 }}>
+      <div>
         <div
           style={{
-            fontSize: 32,
-            marginBottom: 16,
+            fontSize: 34,
+            marginBottom: 12,
           }}
         >
-          📁
+          📋
         </div>
 
         <div
           style={{
-            fontSize: 21,
+            color: "#fff",
             fontWeight: 700,
+            fontSize: 18,
             marginBottom: 8,
           }}
         >
-          {title}
+          {board.title}
         </div>
 
         <div
           style={{
-            color: "rgba(255,255,255,0.8)",
-            fontSize: 14,
+            color: "rgba(255,255,255,.65)",
+            fontSize: 13,
           }}
         >
-          {taskCount} Tasks
+          {board.card_count || 0} Cards • {board.list_count || 0} Lists
         </div>
       </div>
 
       <div
         style={{
-          zIndex: 2,
-          fontWeight: 600,
-          fontSize: 14,
+          display: "flex",
+          justifyContent: "space-between",
         }}
       >
-        Open Board →
+        <button
+          onClick={() => onOpen(board)}
+          style={{
+            background: "#fff",
+            color: "#111827",
+            border: "none",
+            borderRadius: 8,
+            padding: "8px 16px",
+            cursor: "pointer",
+            fontWeight: 600,
+          }}
+        >
+          Open
+        </button>
+
+        <div
+          style={{
+            display: "flex",
+            gap: 8,
+          }}
+        >
+          <button
+            onClick={() => onRename(board)}
+            style={{
+              background: "transparent",
+              border: "none",
+              cursor: "pointer",
+              fontSize: 18,
+            }}
+          >
+            ✏️
+          </button>
+
+          <button
+            onClick={() => onDelete(board)}
+            style={{
+              background: "transparent",
+              border: "none",
+              cursor: "pointer",
+              fontSize: 18,
+            }}
+          >
+            🗑️
+          </button>
+        </div>
       </div>
     </div>
   );
