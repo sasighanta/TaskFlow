@@ -429,6 +429,77 @@ router.get('/boards/:boardId/analytics', async (req, res) => {
   }
 });
 
+router.get("/cards/:cardId/comments", async (req, res) => {
+  try {
+    const { cardId } = req.params;
 
+    const result = await pool.query(
+      `
+      SELECT
+        comments.id,
+        comments.comment,
+        comments.created_at,
+        users.id AS user_id,
+        users.username
+      FROM comments
+      JOIN users
+        ON comments.user_id = users.id
+      WHERE comments.card_id = $1
+      ORDER BY comments.created_at ASC
+      `,
+      [cardId]
+    );
+
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      error: "Failed to fetch comments",
+    });
+  }
+});
+
+router.post("/cards/:cardId/comments", async (req, res) => {
+  try {
+    const { cardId } = req.params;
+    const { userId, comment } = req.body;
+
+    const result = await pool.query(
+      `
+      INSERT INTO comments(card_id, user_id, comment)
+      VALUES($1,$2,$3)
+      RETURNING *;
+      `,
+      [cardId, userId, comment]
+    );
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      error: "Failed to add comment",
+    });
+  }
+});
+
+router.delete("/comments/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    await pool.query(
+      "DELETE FROM comments WHERE id=$1",
+      [id]
+    );
+
+    res.json({
+      success: true,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      error: "Failed to delete comment",
+    });
+  }
+});
 
 module.exports = router;

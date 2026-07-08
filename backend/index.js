@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const http = require('http');
 const { Server } = require('socket.io');
+const boardRoutes = require("./boards.routes");
 require('dotenv').config();
 
 const routes = require('./routes');
@@ -22,6 +23,7 @@ const io = new Server(httpServer, {
 });
 
 app.set('io', io);
+
 
 io.on('connection', (socket) => {
   console.log(`Socket connected: ${socket.id}`);
@@ -83,6 +85,7 @@ app.use(express.json());
 // ── Routes ─────────────────────────────────────────────────────────────────
 app.use('/api', workspaceRoutes);
 app.use('/api', routes);
+app.use("/api", boardRoutes);
 app.use('/api/auth', authRoutes);
 
 app.get('/', (req, res) => res.send('API is running...'));

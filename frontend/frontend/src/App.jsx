@@ -11,7 +11,13 @@ import NotificationBell from './NotificationBell';
 import FilterBar from './FilterBar';
 import Attachments from './Attachments';
 import Analytics from './Analytics';
-
+import ListColumn from "./components/board/ListColumn";
+import CalendarView from "./pages/CalendarView";
+import {
+  getComments,
+  addComment,
+  deleteComment,
+} from "./services/commentService";
 const API = "https://taskflow-production-0940.up.railway.app/api";
 
 const TAGS = [
@@ -95,8 +101,11 @@ function App() {
   const [matchedCardIds, setMatchedCardIds] = useState(null);
   const [matchCount, setMatchCount] = useState(0);
   const [filtersActive, setFiltersActive] = useState(false);
-
+  const [view, setView] = useState("board");
   const boardId = selectedBoard?.id;
+  const [comments, setComments] = useState([]);
+const [commentInput, setCommentInput] = useState("");
+const [loadingComments, setLoadingComments] = useState(false);
 
   const fetchBoard = async () => {
   if (!selectedBoard) return;
@@ -218,8 +227,52 @@ function App() {
     setModalLabels(card.labels || []);
     setModalDueDate(toDatetimeLocal(card.due_date));
     setLabelInput('');
+    loadComments(card.id);
     
   };
+  const loadComments = async (cardId) => {
+  try {
+    setLoadingComments(true);
+
+    const data = await getComments(cardId);
+
+    setComments(data);
+  } catch (err) {
+    console.error(err);
+  } finally {
+    setLoadingComments(false);
+  }
+};
+
+const postComment = async () => {
+  if (!commentInput.trim()) return;
+
+  try {
+    await addComment(
+      selectedCard.id,
+      user.id,
+      commentInput
+    );
+
+    setCommentInput("");
+
+    loadComments(selectedCard.id);
+  } catch (err) {
+    console.error(err);
+    alert("Unable to add comment");
+  }
+};
+
+const removeComment = async (commentId) => {
+  try {
+    await deleteComment(commentId);
+
+    loadComments(selectedCard.id);
+  } catch (err) {
+    console.error(err);
+    alert("Unable to delete comment");
+  }
+};
 
   const addLabel = () => {
     const val = labelInput.trim().toLowerCase();
@@ -242,6 +295,16 @@ function App() {
       <Dashboard user={user} onOpenBoard={(board) => setSelectedBoard(board)} onLogout={handleLogout} />
     </>
   );
+
+  if (view === "calendar") {
+    return (
+      <CalendarView
+        cards={data.cards}
+        onBack={() => setView("board")}
+        onCardClick={openCardModal}
+      />
+    );
+  }
 
   const avatarLetter = user.username ? user.username[0].toUpperCase() : '?';
 
@@ -279,6 +342,15 @@ function App() {
               onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.15)'}
             >📊 Analytics</button>
 
+            <button
+              onClick={() => setView(view === "board" ? "calendar" : "board")}
+              style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)', color: '#fff', borderRadius: 7, padding: '6px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.25)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.15)'}
+            >
+              {view === "board" ? "📅 Calendar" : "📋 Board"}
+            </button>
+
             <button onClick={() => setShowActivity(true)}
               style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)', color: '#fff', borderRadius: 7, padding: '6px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
               onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.25)'}
@@ -294,9 +366,134 @@ function App() {
           </div>
         </div>
 
-        <div style={{ textAlign: 'center', padding: '16px 24px 4px', color: '#fff', fontSize: 20, fontWeight: 600, textShadow: '0 2px 8px rgba(0,0,0,0.4)' }}>
-          Welcome back, {user.username}! ✨
-        </div>
+        <div
+  style={{
+    padding: "28px 30px 18px",
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: 20,
+  }}
+>
+  <div>
+    <h1
+      style={{
+        color: "#fff",
+        margin: 0,
+        fontSize: 34,
+        fontWeight: 700,
+      }}
+    >
+      {selectedBoard.title}
+    </h1>
+
+    <p
+      style={{
+        marginTop: 8,
+        color: "rgba(255,255,255,.65)",
+        fontSize: 14,
+      }}
+    >
+      {data.cards.length} Tasks • {data.lists.length} Lists
+    </p>
+  </div>
+
+  <button
+    style={{
+      background: "linear-gradient(135deg,#2563eb,#7c3aed)",
+      color: "#fff",
+      border: "none",
+      borderRadius: 12,
+      padding: "12px 22px",
+      cursor: "pointer",
+      fontWeight: 700,
+      boxShadow: "0 10px 24px rgba(37,99,235,.35)",
+    }}
+  >
+    + Invite Members
+  </button>
+</div>
+
+<div
+  style={{
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))",
+    gap: 18,
+    padding: "0 30px 24px",
+  }}
+>
+  <div
+    style={{
+      background: "rgba(255,255,255,.06)",
+      border: "1px solid rgba(255,255,255,.08)",
+      borderRadius: 18,
+      padding: 20,
+    }}
+  >
+    <div style={{ color: "#94a3b8", fontSize: 13 }}>Total Tasks</div>
+    <div
+      style={{
+        color: "#fff",
+        fontSize: 30,
+        fontWeight: 700,
+        marginTop: 8,
+      }}
+    >
+      {data.cards.length}
+    </div>
+  </div>
+
+  <div
+    style={{
+      background: "rgba(255,255,255,.06)",
+      border: "1px solid rgba(255,255,255,.08)",
+      borderRadius: 18,
+      padding: 20,
+    }}
+  >
+    <div style={{ color: "#94a3b8", fontSize: 13 }}>Lists</div>
+    <div
+      style={{
+        color: "#38bdf8",
+        fontSize: 30,
+        fontWeight: 700,
+        marginTop: 8,
+      }}
+    >
+      {data.lists.length}
+    </div>
+  </div>
+
+  <div
+    style={{
+      background: "rgba(255,255,255,.06)",
+      border: "1px solid rgba(255,255,255,.08)",
+      borderRadius: 18,
+      padding: 20,
+    }}
+  >
+    <div style={{ color: "#94a3b8", fontSize: 13 }}>Completion</div>
+
+    <div
+      style={{
+        color: "#22c55e",
+        fontSize: 30,
+        fontWeight: 700,
+        marginTop: 8,
+      }}
+    >
+      {data.cards.length === 0
+        ? 0
+        : Math.round(
+            (data.cards.filter(c => c.list_title === "Done").length /
+              data.cards.length) *
+              100
+          )}
+      %
+    </div>
+  </div>
+</div>
 
         {/* FilterBar */}
         {!loading && (
@@ -325,11 +522,31 @@ function App() {
               {data.lists.map(list => {
                 const listCards = data.cards.filter(c => c.list_id === list.id);
                 return (
-                  <div key={list.id} style={{ background: 'rgba(255,255,255,0.94)', borderRadius: 14, width: 280, minWidth: 264, flexShrink: 0, boxShadow: '0 4px 20px rgba(0,0,0,0.18)', display: 'flex', flexDirection: 'column', maxHeight: 'calc(100vh - 210px)', transition: 'box-shadow 0.2s ease' }}
+                  <div key={list.id} style={{
+  width: 320,
+  minWidth: 320,
+  background: "rgba(255,255,255,0.08)",
+  backdropFilter: "blur(16px)",
+  border: "1px solid rgba(255,255,255,0.08)",
+  borderRadius: 18,
+  padding: 16,
+  boxShadow: "0 10px 30px rgba(0,0,0,0.25)",
+  display: "flex",
+  flexDirection: "column",
+  maxHeight: "calc(100vh - 260px)",
+}}
                     onMouseEnter={e => e.currentTarget.style.boxShadow = '0 8px 32px rgba(0,0,0,0.26)'}
                     onMouseLeave={e => e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,0,0,0.18)'}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 10px 8px', borderBottom: '1px solid #ece9e0', flexShrink: 0 }}>
+                    <div style={{
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  marginBottom: 16,
+  paddingBottom: 12,
+  borderBottom: "1px solid rgba(255,255,255,0.08)",
+  flexShrink: 0,
+}}>
                       {editingList === list.id ? (
                         <input autoFocus value={editListTitle} onChange={e => setEditListTitle(e.target.value)}
                           onKeyDown={e => { if (e.key === 'Enter') updateListTitle(list.id); if (e.key === 'Escape') setEditingList(null); }}
@@ -340,7 +557,18 @@ function App() {
                         <EditableTitle value={list.title} isList onDoubleClick={() => { setEditingList(list.id); setEditListTitle(list.title); }} />
                       )}
                       <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                        <span style={{ fontSize: 11, fontWeight: 600, color: '#78716c', background: '#e7e5df', borderRadius: 20, padding: '1px 8px' }}>{listCards.length}</span>
+                        <span style={{
+  minWidth: 28,
+  height: 28,
+  borderRadius: 20,
+  background: "#2563eb",
+  color: "#fff",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  fontSize: 12,
+  fontWeight: 700,
+}}>{listCards.length}</span>
                         <TrashButton onClick={() => deleteList(list.id)} />
                       </div>
                     </div>
@@ -366,7 +594,7 @@ function App() {
                             const dueSoon = isDueSoon(card.due_date, card.status);
                             const dimmed = filtersActive && matchedCardIds && !matchedCardIds.has(card.id);
                             return (
-                              <Draggable key={card.id} draggableId={card.id.toString()} index={index}>
+ <Draggable key={card.id} draggableId={card.id.toString()} index={index}>
                                 {(provided, snapshot) => (
                                   <div ref={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps}
                                     onMouseEnter={() => setHoveredCard(card.id)}
@@ -489,8 +717,6 @@ function App() {
             </div>
           </DragDropContext>
         )}
-
-        {/* ── Card Modal ── */}
         {selectedCard && (
           <div onClick={() => setSelectedCard(null)}
             style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(4px)' }}
@@ -565,6 +791,119 @@ function App() {
                 <Attachments cardId={selectedCard.id} boardId={boardId} userId={user.id} />
               </div>
 
+              {/* COMMENTS */}
+<label style={labelStyle}>COMMENTS</label>
+
+<div
+  style={{
+    maxHeight: 220,
+    overflowY: "auto",
+    border: "1px solid #e5e7eb",
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 12,
+    background: "#fafafa",
+  }}
+>
+  {loadingComments ? (
+    <p>Loading...</p>
+  ) : comments.length === 0 ? (
+    <p
+      style={{
+        color: "#9ca3af",
+        fontSize: 13,
+      }}
+    >
+      No comments yet.
+    </p>
+  ) : (
+    comments.map((c) => (
+      <div
+        key={c.id}
+        style={{
+          borderBottom: "1px solid #e5e7eb",
+          paddingBottom: 10,
+          marginBottom: 10,
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+          }}
+        >
+          <strong>{c.username}</strong>
+
+          <button
+            onClick={() => removeComment(c.id)}
+            style={{
+              border: "none",
+              background: "none",
+              color: "#ef4444",
+              cursor: "pointer",
+            }}
+          >
+            Delete
+          </button>
+        </div>
+
+        <div
+          style={{
+            marginTop: 4,
+            fontSize: 14,
+          }}
+        >
+          {c.comment}
+        </div>
+
+        <div
+          style={{
+            marginTop: 4,
+            color: "#9ca3af",
+            fontSize: 11,
+          }}
+        >
+          {new Date(c.created_at).toLocaleString()}
+        </div>
+      </div>
+    ))
+  )}
+</div>
+
+<div
+  style={{
+    display: "flex",
+    gap: 8,
+    marginBottom: 20,
+  }}
+>
+  <input
+    value={commentInput}
+    onChange={(e) => setCommentInput(e.target.value)}
+    placeholder="Write a comment..."
+    style={{
+      ...inputStyle,
+      flex: 1,
+      marginBottom: 0,
+    }}
+  />
+
+  <button
+    onClick={postComment}
+    style={{
+      background: "#2563eb",
+      color: "#fff",
+      border: "none",
+      borderRadius: 8,
+      padding: "0 16px",
+      cursor: "pointer",
+      fontWeight: 600,
+    }}
+  >
+    Post
+  </button>
+</div>
+
               <div style={{ display: 'flex', gap: 10 }}>
                 <button onClick={updateCard} style={{ flex: 1, background: '#2563eb', color: '#fff', border: 'none', borderRadius: 8, padding: '10px', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Save</button>
                 <button onClick={() => setSelectedCard(null)} style={{ background: '#f5f5f4', color: '#78716c', border: 'none', borderRadius: 8, padding: '10px 16px', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
@@ -572,6 +911,8 @@ function App() {
             </div>
           </div>
         )}
+     
+
       </div>
 
       <ActivityFeed boardId={boardId} isOpen={showActivity} onClose={() => setShowActivity(false)} socket={socket} />
