@@ -286,7 +286,7 @@ FRONTEND_URL=http://localhost:5173
 
 #  Screenshots
 
-> Add screenshots inside a folder named **screenshots**.
+
 
 ## Login Page
 
@@ -403,8 +403,7 @@ https://www.linkedin.com/in/sasi-ghanta-04420a2b4
  GitHub  
 https://github.com/sasighanta
 
- LeetCode  
-https://leetcode.com/u/sasi_ghanta/
+ 
 
 ---
 
