@@ -17,6 +17,28 @@ TaskFlow enables teams to organize projects, manage tasks, collaborate in real-t
  **GitHub Repository:** https://github.com/sasighanta/TaskFlow
 
 ---
+#  Screenshots
+
+
+
+## Login Page
+
+<img width="100%" src="screenshots/login.png"/>
+
+---
+
+## Dashboard
+
+<img width="100%" src="screenshots/dashboard.png"/>
+
+---
+
+## Board
+
+<img width="100%" src="screenshots/board.png"/>
+
+
+---
 
 #  Features
 
@@ -281,29 +303,6 @@ JWT_SECRET=<your_jwt_secret>
 
 FRONTEND_URL=http://localhost:5173
 ```
-
----
-
-#  Screenshots
-
-
-
-## Login Page
-
-<img width="100%" src="screenshots/login.png"/>
-
----
-
-## Dashboard
-
-<img width="100%" src="screenshots/dashboard.png"/>
-
----
-
-## Board
-
-<img width="100%" src="screenshots/board.png"/>
-
 
 ---
 
