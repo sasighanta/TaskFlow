@@ -1,7 +1,7 @@
 import API from "./api";
 
 export const getBoards = async (userId) => {
-  const res = await API.get(`/user/${userId}/boards`);
+  const res = await API.get(`/users/${userId}/boards`);
   return res.data;
 };
 

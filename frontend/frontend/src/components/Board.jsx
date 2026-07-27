@@ -1,22 +1,24 @@
 import { useEffect, useMemo, useState } from "react";
-import axios from "axios";
+
 
 import BoardTopBar from "./components/board/BoardTopBar";
 import BoardStats from "./components/board/BoardStats";
 import BoardToolbar from "./components/board/BoardToolbar";
 import ListColumn from "./components/list/ListColumn";
+import API from "../services/api";
+
 
 function Board() {
   const [lists, setLists] = useState([]);
   const [cards, setCards] = useState([]);
   const [search, setSearch] = useState("");
-
+   
   useEffect(() => {
     fetchBoard();
   }, []);
 
   const fetchBoard = async () => {
-    const res = await axios.get("http://localhost:5000/api/board/1");
+  const res = await API.get("/board/1");
 
     setLists(res.data.lists);
     setCards(res.data.cards);

@@ -2,9 +2,9 @@
 // Place in: frontend/src/Analytics.jsx
 
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+import API from "./services/api";
 
-const API = "https://taskflow-production-0940.up.railway.app/api";
+
 
 const STATUS_COLORS = {
   todo: '#9ca3af', in_progress: '#3b82f6', blocked: '#ef4444', done: '#10b981',
@@ -134,12 +134,22 @@ export default function Analytics({ boardId, onClose }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (!boardId) return;
-    axios.get(`${API}/boards/${boardId}/analytics`)
-      .then(res => { setData(res.data); setLoading(false); })
-      .catch(() => setLoading(false));
-  }, [boardId]);
+ useEffect(() => {
+  if (!boardId) return;
+
+  const fetchAnalytics = async () => {
+    try {
+      const res = await API.get(`/boards/${boardId}/analytics`);
+      setData(res.data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchAnalytics();
+}, [boardId]);
 
   return (
     <div

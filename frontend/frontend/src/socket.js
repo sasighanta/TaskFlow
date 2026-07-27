@@ -1,11 +1,7 @@
 import { io } from 'socket.io-client';
 
-const socket = io('https://taskflow-production-0940.up.railway.app', {
-  autoConnect: true,
-  reconnection: true,
-  reconnectionAttempts: 5,
-  reconnectionDelay: 1000,
-  transports: ['websocket', 'polling'],
+const socket = io("http://localhost:5000", {
+  transports: ["websocket", "polling"],
 });
 
 socket.on('connect', () => {
