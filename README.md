@@ -1,203 +1,410 @@
-# 🗂️ TaskFlow — Full Stack Project
+#  TaskFlow
 
-A modern full-stack Trello-inspired task management application built using React, Node.js, Express.js, and PostgreSQL with smooth drag-and-drop functionality.
+![React](https://img.shields.io/badge/React-19-blue?logo=react)
+![Node.js](https://img.shields.io/badge/Node.js-Express-green?logo=node.js)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Supabase-blue?logo=postgresql)
+![Socket.IO](https://img.shields.io/badge/Socket.IO-Realtime-black?logo=socketdotio)
+![License](https://img.shields.io/badge/License-MIT-yellow)
 
-🔗 **Live App:** [trello-tau-amber.vercel.app](https://trello-tau-amber.vercel.app)  
-🔗 **Backend API:** [trello-backend-i0lq.onrender.com](https://trello-backend-i0lq.onrender.com)
-📁 **GitHub:** [github.com/sasighanta/trello](https://github.com/sasighanta/trello)
+A **modern Trello-inspired collaborative project management platform** built using a modern full-stack architecture powered by **React.js**, **Node.js**, **Express.js**, and **PostgreSQL (Supabase)** with **Socket.IO** and **JWT Authentication**.
 
-## 📸 Screenshots
+TaskFlow enables teams to organize projects, manage tasks, collaborate in real-time, track project progress, and gain valuable insights through analytics and activity tracking.
 
-### Login Page
-![Login](./screenshots/login.png)
+ **Live Demo:** https://trello-tau-amber.vercel.app
 
-### Dashboard
-![Dashboard](./screenshots/dashboard.png)
+ **Backend API:** https://trello-backend-i0lq.onrender.com
 
-### Board View
-![Board](./screenshots/board.png)
-
----
-
-## ✨ Features
-
-### 🔐 Authentication
-- User Login & Register
-- Session-based per-user experience
-- Personalized dashboard per account
-
-### 🏠 Dashboard
-- Board overview after login
-- `Login → Dashboard → Board` flow
-- Create Board placeholder for future expansion
-
-### 🗂️ Board & Task Management
-- Create, rename (double-click), and delete lists
-- Create, edit (title + description), and delete cards
-- Description preview shown directly on card
-- Color-coded tags — Design, Feature, Backend, Bug
-
-### 🔄 Drag & Drop
-- Smooth drag-and-drop card movement
-- Move cards across lists
-- Persistent ordering saved to database
-
-### 🎨 UI/UX
-- Hover-based trash icons (no cluttered delete buttons)
-- Dashed interactive "Add" buttons
-- Cards lift on hover with smooth transitions
-- Toast notifications for every action
-- Empty state UI with icon
-- Avatar initial in header
-- Scrollable columns for long lists
-- Pencil icon hint on editable titles
+ **GitHub Repository:** https://github.com/sasighanta/TaskFlow
 
 ---
 
-## 🛠️ Tech Stack
+#  Features
 
-| Layer | Technology |
-|-------|-----------|
-| Frontend | React, Vite, Axios, @hello-pangea/dnd, react-hot-toast |
-| Backend | Node.js, Express.js |
-| Database | PostgreSQL (Supabase) |
-| Hosting | Vercel (frontend), Render (backend), Supabase (database) |
+##  Authentication
+
+- User Registration
+- Secure Login
+- JWT Authentication
+- Password Hashing using bcrypt
+- Protected Routes
+- Persistent User Sessions
 
 ---
 
-## 📂 Project Structure
+##  Board Management
 
-```
-trello/
-├── frontend/
-│   └── src/
-│       ├── App.jsx
-│       ├── Auth.jsx
-│       ├── Dashboard.jsx
-│       └── components.jsx
+- Create Boards
+- Rename Boards
+- Delete Boards
+- Multiple Boards per User
+- Dashboard Overview
+- Default Board Creation
+
+---
+
+##  List Management
+
+- Create Lists
+- Edit Lists
+- Delete Lists
+- Drag & Drop Lists
+- Automatic Position Management
+
+---
+
+##  Card Management
+
+- Create Cards
+- Edit Card Details
+- Delete Cards
+- Drag & Drop Cards
+- Move Cards Across Lists
+- Rich Task Description
+- Due Dates
+- Priority Levels
+- Labels
+- Card Completion Status
+
+---
+
+##  Team Collaboration
+
+- Workspace Management
+- Shared Boards
+- Invite Members
+- Card Comments
+- Activity Feed
+- Notifications
+- Real-Time Synchronization
+
+---
+
+##  Analytics Dashboard
+
+- Total Tasks
+- Completed Tasks
+- Pending Tasks
+- Weekly Activity
+- Board Statistics
+- Completion Percentage
+- Priority Distribution
+- Productivity Insights
+
+---
+
+##  Notifications
+
+- Real-Time Notifications
+- Activity Tracking
+- User Action History
+- Recent Activity Feed
+
+---
+
+##  Real-Time Features
+
+- Socket.IO Integration
+- Live Task Updates
+- Instant Synchronization
+- Real-Time Collaboration
+- Auto Refresh Across Clients
+
+---
+
+##  Modern UI
+
+- Responsive Design
+- Interactive Dashboard
+- Modern Card Layout
+- Clean User Interface
+- Mobile Friendly
+- Professional Landing Page
+
+---
+
+#  Tech Stack
+
+## Frontend
+
+- React.js
+- Vite
+- JavaScript (ES6+)
+- HTML5
+- CSS3
+- Axios
+- Socket.IO Client
+
+---
+
+## Backend
+
+- Node.js
+- Express.js
+- REST API
+- JWT Authentication
+- bcrypt
+- Socket.IO
+
+---
+
+## Database
+
+- PostgreSQL
+- Supabase
+
+---
+
+#  Cloud & Deployment
+
+## Frontend
+
+- Vercel
+
+## Backend
+
+- Render
+
+## Database
+
+- Supabase PostgreSQL
+
+---
+
+#  REST API
+
+| Method | Endpoint | Description |
+|---------|----------|-------------|
+| POST | `/api/register` | Register a New User |
+| POST | `/api/login` | User Login |
+| GET | `/api/user/:userId/boards` | Get User Boards |
+| POST | `/api/boards` | Create Board |
+| GET | `/api/board/:id` | Fetch Board Details |
+| POST | `/api/lists` | Create List |
+| PUT | `/api/lists/:id` | Update List |
+| DELETE | `/api/lists/:id` | Delete List |
+| POST | `/api/cards` | Create Card |
+| PUT | `/api/cards/:id` | Update Card |
+| DELETE | `/api/cards/:id` | Delete Card |
+| GET | `/api/notifications/:userId` | Get Notifications |
+| GET | `/api/boards/:boardId/analytics` | Board Analytics |
+
+---
+
+#  Project Structure
+
+```text
+TaskFlow
 │
-├── backend/
+├── frontend
+│   ├── public
+│   ├── src
+│   │   ├── assets
+│   │   ├── components
+│   │   ├── services
+│   │   ├── App.jsx
+│   │   └── main.jsx
+│   ├── package.json
+│   └── vite.config.js
+│
+├── backend
+│   ├── attachments.routes.js
+│   ├── auth.js
+│   ├── boards.routes.js
+│   ├── workspace.routes.js
 │   ├── routes.js
 │   ├── db.js
-│   └── index.js
+│   ├── index.js
+│   ├── package.json
+│   └── .env
 │
 └── README.md
 ```
 
 ---
 
-## ⚙️ Installation & Setup
+#  Getting Started
 
-### 1️⃣ Clone Repository
+## Clone the Repository
+
 ```bash
-git clone https://github.com/sasighanta/trello.git
+git clone https://github.com/sasighanta/TaskFlow.git
 ```
 
-### 2️⃣ Backend Setup
+---
+
+## Install Frontend
+
 ```bash
-cd trello/backend
+cd frontend
+
 npm install
-```
 
-Create a `.env` file:
-```env
-DATABASE_URL=your_postgresql_connection_string
-PORT=5000
-```
-
-Run the server:
-```bash
-node index.js
-```
-
-### 3️⃣ Frontend Setup
-```bash
-cd trello/frontend
-npm install
 npm run dev
 ```
 
-Frontend runs on `http://localhost:5173`
+Frontend runs at:
 
----
-
-## 🗄️ Database Schema
-
-```sql
-CREATE TABLE users (
-  id SERIAL PRIMARY KEY,
-  username VARCHAR(100) UNIQUE NOT NULL,
-  password TEXT NOT NULL
-);
-
-CREATE TABLE boards (
-  id SERIAL PRIMARY KEY,
-  user_id INTEGER REFERENCES users(id),
-  title TEXT
-);
-
-CREATE TABLE lists (
-  id SERIAL PRIMARY KEY,
-  board_id INTEGER REFERENCES boards(id),
-  title TEXT,
-  position INTEGER
-);
-
-CREATE TABLE cards (
-  id SERIAL PRIMARY KEY,
-  list_id INTEGER REFERENCES lists(id),
-  title TEXT,
-  description TEXT,
-  tag VARCHAR(50),
-  tag_label VARCHAR(50),
-  position INTEGER
-);
+```
+http://localhost:5173
 ```
 
 ---
 
-## 📡 API Endpoints
+## Install Backend
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/auth/register` | Register a new user |
-| POST | `/api/auth/login` | Login and get token |
-| GET | `/api/user/:userId/board` | Fetch full board with lists and cards |
-| POST | `/api/lists` | Create a new list |
-| PUT | `/api/lists/:id` | Update list title |
-| DELETE | `/api/lists/:id` | Delete list and its cards |
-| POST | `/api/cards` | Create a new card |
-| PUT | `/api/cards/:id/title` | Update card title |
-| PUT | `/api/cards/:id/description` | Update card description |
-| PUT | `/api/cards/reorder` | Reorder cards after drag and drop |
-| DELETE | `/api/cards/:id` | Delete a card |
+```bash
+cd backend
 
----
+npm install
 
-## 🚀 Future Improvements
-- Multiple boards per user
-- Due dates on cards
-- Team collaboration
-- Activity history
-- Dark mode
-- Labels and priorities
-- Search and filters
+npm run dev
+```
+
+Backend runs at:
+
+```
+http://localhost:5000
+```
 
 ---
 
-## 👨‍💻 Author
+#  Environment Variables
 
-**Sasi Sai Tulasi Ghanta**  
-[GitHub](https://github.com/sasighanta) • [LinkedIn](https://linkedin.com/in/sasighanta)
+Create a `.env` file inside the backend folder.
+
+```env
+PORT=5000
+
+DATABASE_URL=<your_postgresql_connection_string>
+
+JWT_SECRET=<your_jwt_secret>
+
+FRONTEND_URL=http://localhost:5173
+```
 
 ---
 
-## ⭐ Conclusion
+#  Screenshots
 
-This project demonstrates full-stack development skills including REST APIs, database integration, authentication, drag-and-drop functionality, deployment, and responsive UI/UX. Built as a placement-focused project to showcase modern web development practices.
+> Add screenshots inside a folder named **screenshots**.
+
+## Login Page
+
+<img width="100%" src="screenshots/login.png"/>
 
 ---
 
-## 📄 License
+## Dashboard
 
-This project is open source and available under the [MIT License](LICENSE).
+<img width="100%" src="screenshots/dashboard.png"/>
+
+---
+
+## Board
+
+<img width="100%" src="screenshots/board.png"/>
+
+
+---
+
+#  Roadmap
+
+- AI Task Suggestions
+- Email Notifications
+- File Upload Support
+- Team Roles & Permissions
+- Dark / Light Theme
+- Mobile Application
+- Calendar Integrations
+- Time Tracking
+- Task Dependencies
+- Advanced Reports
+- AI Project Analytics
+
+---
+
+#  Key Highlights
+
+- Full Stack Web Application
+- JWT Authentication
+- PostgreSQL Database
+- RESTful API Architecture
+- Real-Time Collaboration using Socket.IO
+- Analytics Dashboard
+- Activity Tracking
+- Notification System
+- Responsive UI
+- Secure Authentication
+- Professional Dashboard Design
+
+---
+
+#  Learning Outcomes
+
+Through this project I gained practical experience in:
+
+- Building scalable REST APIs with Express.js
+- Implementing JWT Authentication
+- Designing PostgreSQL databases
+- Real-Time Communication using Socket.IO
+- React State Management
+- API Integration with Axios
+- Full Stack Deployment
+- Responsive UI Development
+- Database Relationships
+- Authentication & Authorization
+- Deploying applications using Vercel and Render
+
+---
+
+#  Contributing
+
+Contributions are welcome!
+
+1. Fork the repository
+
+2. Create a new branch
+
+```bash
+git checkout -b feature-name
+```
+
+3. Commit your changes
+
+```bash
+git commit -m "Add new feature"
+```
+
+4. Push to GitHub
+
+```bash
+git push origin feature-name
+```
+
+5. Open a Pull Request
+
+---
+
+#  License
+
+This project is licensed under the **MIT License**.
+
+---
+
+#  Author
+
+**Sasi Sai Tulasi Ghanta**
+
+ Email: **sasighanta2006@gmail.com**
+
+ LinkedIn  
+https://www.linkedin.com/in/sasi-ghanta-04420a2b4
+
+ GitHub  
+https://github.com/sasighanta
+
+ LeetCode  
+https://leetcode.com/u/sasi_ghanta/
+
+---
+
